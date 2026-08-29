@@ -1,0 +1,291 @@
+/* =========================================
+   TOURIST SAFETY & SOS STYLING
+========================================= */
+
+.safety-sos-page {
+  position: relative;
+  z-index: 5;
+  min-height: 100vh;
+  padding-bottom: 90px;
+  color: #171725;
+  background: transparent;
+}
+
+.safety-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 7%;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.safety-back-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 9px 18px;
+  border-radius: 30px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+}
+
+.safety-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #1e293b;
+}
+
+.shield-red {
+  color: #ef4444;
+}
+
+.safe-status-pill {
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+
+.safety-container {
+  width: min(1000px, 92%);
+  margin: 40px auto 0;
+}
+
+/* SOS HERO */
+.sos-hero-card {
+  background: linear-gradient(135deg, #1e1b4b, #31132a);
+  border-radius: 28px;
+  padding: 45px 30px;
+  text-align: center;
+  color: white;
+  margin-bottom: 35px;
+  box-shadow: 0 25px 60px rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.sos-alert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  margin-bottom: 14px;
+}
+
+.sos-hero-card h1 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(28px, 4vw, 42px);
+  margin-bottom: 12px;
+}
+
+.sos-hero-card h1 span {
+  color: #f87171;
+}
+
+.sos-hero-card p {
+  color: #cbd5e1;
+  font-size: 15px;
+  max-width: 600px;
+  margin: 0 auto 30px;
+  line-height: 1.6;
+}
+
+.sos-button-wrapper {
+  margin: 20px 0;
+}
+
+.big-sos-btn {
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  box-shadow: 0 0 45px rgba(239, 68, 68, 0.6), 0 10px 25px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  padding: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.3s ease;
+}
+
+.big-sos-btn:hover {
+  box-shadow: 0 0 60px rgba(239, 68, 68, 0.8), 0 15px 35px rgba(0, 0, 0, 0.4);
+}
+
+.sos-inner-ring {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.sos-tower-icon {
+  font-size: 26px;
+  margin-bottom: 4px;
+}
+
+.sos-inner-ring span {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.sos-inner-ring small {
+  font-size: 9px;
+  color: #fca5a5;
+  margin-top: 2px;
+}
+
+.sos-dispatch-banner {
+  margin-top: 25px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.dispatch-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #fca5a5;
+}
+
+.dispatch-text.success {
+  color: #34d399;
+}
+
+/* HOTLINES GRID */
+.emergency-directory h2 {
+  font-size: 22px;
+  color: #0f172a;
+  margin-bottom: 20px;
+}
+
+.hotlines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 35px;
+}
+
+.hotline-card {
+  background: white;
+  border-radius: 20px;
+  padding: 22px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+}
+
+.hotline-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 20px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+}
+
+.hotline-details h3 {
+  font-size: 16px;
+  color: #1e293b;
+  margin: 0 0 6px;
+}
+
+.hotline-details p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 16px;
+  line-height: 1.4;
+  flex-grow: 1;
+}
+
+.call-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #1e1b4b;
+  color: white;
+  text-decoration: none;
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.call-btn:hover {
+  background: #ef4444;
+}
+
+/* TIPS */
+.safety-tips-box {
+  background: white;
+  border-radius: 24px;
+  padding: 30px;
+  border: 1px solid #e2e8f0;
+}
+
+.safety-tips-box h3 {
+  font-size: 18px;
+  color: #0f172a;
+  margin-bottom: 20px;
+}
+
+.tips-list-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.tip-item strong {
+  display: block;
+  font-size: 14px;
+  color: #1e293b;
+  margin-bottom: 6px;
+}
+
+.tip-item p {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .tips-list-grid {
+    grid-template-columns: 1fr;
+  }
+}

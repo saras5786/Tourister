@@ -1,0 +1,477 @@
+/* =========================================
+   FASTTRACK AIRPORT & IMMIGRATION STYLING
+========================================= */
+
+.fasttrack-page {
+  position: relative;
+  z-index: 5;
+  min-height: 100vh;
+  padding-bottom: 90px;
+  color: #171725;
+  background: transparent;
+}
+
+/* NAVBAR */
+.fasttrack-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 7%;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.fasttrack-back-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 8px 18px;
+  border-radius: 30px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.fasttrack-back-btn:hover {
+  background: #f1f5f9;
+}
+
+.fasttrack-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #1e293b;
+}
+
+.plane-purple {
+  color: #6366f1;
+}
+
+.express-pill {
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+
+/* CONTAINER */
+.fasttrack-container {
+  width: min(1180px, 92%);
+  margin: 35px auto 0;
+}
+
+.fasttrack-hero {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto 35px;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.fasttrack-hero h1 {
+  font-size: clamp(28px, 4vw, 40px);
+  color: #0f172a;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.fasttrack-hero h1 span {
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.fasttrack-hero p {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+/* GRID */
+.fasttrack-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-bottom: 35px;
+}
+
+.fasttrack-card {
+  background: white;
+  border-radius: 24px;
+  border: 1px solid #e2e8f0;
+  padding: 32px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.04);
+}
+
+.card-header-tag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #3b82f6;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.card-header-tag span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  background: #eff6ff;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.card-header-tag.purple-tag {
+  color: #8b5cf6;
+}
+
+.card-header-tag.purple-tag span {
+  background: #f5f3ff;
+  color: #8b5cf6;
+}
+
+.fasttrack-card h2 {
+  font-size: 20px;
+  color: #0f172a;
+  margin: 0 0 6px;
+}
+
+.fasttrack-card p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 20px;
+}
+
+.checkin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.checkin-form .input-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkin-form label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #475569;
+}
+
+.checkin-form input,
+.checkin-form select {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 13px;
+  outline: none;
+}
+
+.checkin-form input:focus,
+.checkin-form select:focus {
+  border-color: #6366f1;
+  background: white;
+}
+
+.checkin-submit-btn,
+.activate-dy-btn,
+.declare-imm-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.checkin-submit-btn {
+  background: linear-gradient(90deg, #3b82f6, #6366f1);
+  color: white;
+  margin-top: 8px;
+}
+
+.activate-dy-btn {
+  background: linear-gradient(90deg, #8b5cf6, #ec4899);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.declare-imm-btn {
+  background: #1e1b4b;
+  color: white;
+}
+
+/* BOARDING PASS PREVIEW */
+.boarding-pass-preview {
+  background: linear-gradient(135deg, #1e1b4b, #312e81);
+  color: white;
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.bp-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.bp-airline {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #a5b4fc;
+}
+
+.bp-top h3 {
+  font-size: 20px;
+  margin: 4px 0 0;
+}
+
+.seat-badge {
+  background: #fbbf24;
+  color: #1e1b4b;
+  font-weight: 800;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.bp-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 14px 0;
+  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+  margin-bottom: 16px;
+}
+
+.bp-meta-grid span {
+  display: block;
+  font-size: 9px;
+  color: #c7d2fe;
+}
+
+.bp-meta-grid strong {
+  font-size: 12px;
+}
+
+.bp-qr-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.bp-qr-code {
+  background: white;
+  color: #1e1b4b;
+  padding: 8px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+}
+
+.big-qr-icon {
+  font-size: 40px;
+}
+
+.bp-status-text strong {
+  display: block;
+  font-size: 13px;
+  color: #34d399;
+}
+
+.bp-status-text span {
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.green-check {
+  color: #10b981;
+}
+
+/* DIGIYATRA BOX */
+.digiyatra-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.dy-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.dy-status-row strong {
+  display: block;
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.dy-status-row span {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.dy-pill {
+  background: #e0e7ff;
+  color: #4338ca;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 12px;
+}
+
+.dy-active-pass {
+  text-align: center;
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid #c7d2fe;
+}
+
+.dy-radar-box {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  background: #e0e7ff;
+  display: grid;
+  place-items: center;
+  color: #4338ca;
+  font-size: 24px;
+}
+
+.dy-active-pass h3 {
+  font-size: 16px;
+  color: #1e1b4b;
+  margin: 0 0 4px;
+}
+
+.dy-active-pass p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 10px;
+}
+
+.token-code {
+  font-size: 11px;
+  font-weight: 800;
+  color: #8b5cf6;
+  background: #f5f3ff;
+  padding: 4px 10px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+/* IMMIGRATION SECTION */
+.immigration-card-section {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 20px;
+}
+
+.imm-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #0f172a;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.imm-success-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 12px;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* BENEFITS GRID */
+.fasttrack-benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.benefit-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.benefit-icon {
+  font-size: 26px;
+}
+
+.benefit-icon.blue {
+  color: #3b82f6;
+}
+
+.benefit-icon.purple {
+  color: #8b5cf6;
+}
+
+.benefit-icon.green {
+  color: #10b981;
+}
+
+.benefit-card strong {
+  display: block;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.benefit-card span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+@media (max-width: 868px) {
+  .fasttrack-grid {
+    grid-template-columns: 1fr;
+  }
+}

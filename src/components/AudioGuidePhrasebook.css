@@ -1,0 +1,219 @@
+/* =========================================
+   AUDIO GUIDE PHRASEBOOK STYLING
+========================================= */
+
+.audio-phrasebook-page {
+  position: relative;
+  z-index: 5;
+  min-height: 100vh;
+  padding-bottom: 90px;
+  color: #171725;
+  background: transparent;
+}
+
+.phrase-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 7%;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.phrase-back-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 9px 18px;
+  border-radius: 30px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+}
+
+.phrase-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #1e293b;
+}
+
+.phrase-status-pill {
+  background: #ede9fe;
+  color: #6d28d9;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.phrase-container {
+  width: min(1000px, 92%);
+  margin: 40px auto 0;
+}
+
+.phrase-hero {
+  text-align: center;
+  max-width: 750px;
+  margin: 0 auto 40px;
+}
+
+.phrase-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(139, 92, 246, 0.1);
+  color: #7c3aed;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  margin-bottom: 12px;
+}
+
+.phrase-hero h1 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(30px, 4vw, 44px);
+  color: #0f172a;
+  margin-bottom: 12px;
+}
+
+.phrase-hero h1 span {
+  background: linear-gradient(90deg, #7c3aed, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.phrase-hero p {
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
+
+.lang-selector-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.lang-btn {
+  background: white;
+  border: 1px solid #cbd5e1;
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #475569;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.lang-btn.active {
+  background: #1e1b4b;
+  color: white;
+  border-color: #1e1b4b;
+}
+
+.phrases-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.phrase-card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px 28px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03);
+}
+
+.phrase-text-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.phrase-en {
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.phrase-local {
+  font-size: 19px;
+  color: #1e293b;
+}
+
+.phrase-usage {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.audio-play-btn {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  color: white;
+  border: none;
+  padding: 12px 22px;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: 0.25s ease;
+}
+
+.audio-play-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
+}
+
+.audio-play-btn.playing {
+  background: #10b981;
+}
+
+.pulse {
+  animation: audioPulse 0.8s infinite alternate;
+}
+
+@keyframes audioPulse {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.3);
+  }
+}
+
+@media (max-width: 600px) {
+  .phrase-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .audio-play-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

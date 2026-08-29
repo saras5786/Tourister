@@ -1,0 +1,17 @@
+{
+  "name": "tourister-server",
+  "version": "1.0.0",
+  "description": "Tourister AI Backend",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "openai": "^4.104.0"
+  }
+}
