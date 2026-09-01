@@ -11,17 +11,19 @@ import {
   FaLock,
   FaLeaf,
   FaRoute,
+  FaSignOutAlt,
 } from "react-icons/fa";
 import "./UserProfile.css";
 
 function UserProfile({
   onBack,
-  username = "saraschandra",
-  email = "saraschandra5786@gmail.com",
+  username = "Tourister",
+  email = "user@tourister.com",
   userPoints = 300,
-  userPassword = "password123",
+  userPassword = "",
   onUpdatePassword,
   savedPlans = [],
+  onLogout,
 }) {
   const [activeTab, setActiveTab] = useState("overview"); // 'overview' | 'security' | 'badges' | 'plans' | 'settings'
 
@@ -187,6 +189,15 @@ function UserProfile({
             >
               <FaCog /> Travel Preferences
             </button>
+            {onLogout && (
+              <button
+                className="nav-item logout-btn"
+                onClick={onLogout}
+                style={{ marginTop: "16px", color: "#ef4444" }}
+              >
+                <FaSignOutAlt /> Log Out
+              </button>
+            )}
           </nav>
         </aside>
 

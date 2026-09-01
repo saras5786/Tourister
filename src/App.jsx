@@ -70,17 +70,6 @@ const backgroundDots = [
   { id: 10, left: "62%", top: "84%", size: 20, className: "purple-dot" },
 ];
 
-/* DEFAULT REGISTERED USERS DATABASE */
-const DEFAULT_USERS = [
-  {
-    username: "saraschandra",
-    email: "saraschandra5786@gmail.com",
-    password: "password123",
-    userPoints: 300,
-    walletBalance: 2500,
-  },
-];
-
 function App() {
   /* =================================
      PAGE ROUTING STATE
@@ -99,8 +88,8 @@ function App() {
   const [authError, setAuthError] = useState("");
   const [authSuccess, setAuthSuccess] = useState("");
 
-  const [loginInput, setLoginInput] = useState("saraschandra");
-  const [loginPassword, setLoginPassword] = useState("password123");
+  const [loginInput, setLoginInput] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
 
   const [signupUsername, setSignupUsername] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
@@ -117,11 +106,11 @@ function App() {
         console.error(e);
       }
     }
-    return DEFAULT_USERS[0];
+    return null;
   });
 
-  const [userPoints, setUserPoints] = useState(currentUser?.userPoints || 300);
-  const [walletBalance, setWalletBalance] = useState(currentUser?.walletBalance || 2500);
+  const [userPoints, setUserPoints] = useState(currentUser?.userPoints || currentUser?.user_points || 300);
+  const [walletBalance, setWalletBalance] = useState(currentUser?.walletBalance || currentUser?.wallet_balance || 2500);
   const [savedPlans, setSavedPlans] = useState([]);
   const [activeGem, setActiveGem] = useState(null);
 
@@ -129,7 +118,7 @@ function App() {
   useEffect(() => {
     const existing = localStorage.getItem("tourister_users");
     if (!existing) {
-      localStorage.setItem("tourister_users", JSON.stringify(DEFAULT_USERS));
+      localStorage.setItem("tourister_users", JSON.stringify([]));
     }
   }, []);
 
@@ -1117,6 +1106,7 @@ Whenever the user asks about a trip or destination, always structure your answer
           userPoints={userPoints}
           onAddPoints={handleAddPoints}
           onSavePlan={handleSavePlan}
+          username={currentUser?.username || "Tourister"}
         />
       )}
 
@@ -1151,12 +1141,19 @@ Whenever the user asks about a trip or destination, always structure your answer
       {page === "profile" && (
         <UserProfile
           onBack={() => setPage("dashboard")}
-          username={currentUser?.username || "saraschandra"}
-          email={currentUser?.email || "saraschandra5786@gmail.com"}
+          username={currentUser?.username || "Tourister"}
+          email={currentUser?.email || "user@tourister.com"}
           userPoints={userPoints}
-          userPassword={currentUser?.password || "password123"}
+          userPassword={currentUser?.password || ""}
           onUpdatePassword={handleUpdatePassword}
           savedPlans={savedPlans}
+          onLogout={() => {
+            localStorage.removeItem("tourister_logged_user");
+            setCurrentUser(null);
+            setLoginInput("");
+            setLoginPassword("");
+            setPage("home");
+          }}
         />
       )}
 
@@ -1166,7 +1163,7 @@ Whenever the user asks about a trip or destination, always structure your answer
       {page === "fasttrack" && (
         <FastTrackAirportPass
           onBack={() => setPage("dashboard")}
-          username={currentUser?.username || "saraschandra"}
+          username={currentUser?.username || "Tourister"}
         />
       )}
 

@@ -39,7 +39,7 @@ import "./CreatePlan.css";
 
 const THEMATIC_FALLBACK_IMG = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=700&q=80";
 
-function CreatePlan({ onBack, userPoints = 300, onAddPoints, onSavePlan }) {
+function CreatePlan({ onBack, userPoints = 300, onAddPoints, onSavePlan, username = "Tourister" }) {
   // 1. FROM (SOURCE) LOCATION STATE
   const [sourceLocation, setSourceLocation] = useState({
     name: "Hyderabad",
@@ -240,7 +240,7 @@ Give 3 concise bullet points:
 
   const handleSaveItinerary = async () => {
     const newPlan = {
-      username: "saraschandra",
+      username: username || "Tourister",
       source: sourceLocation.name,
       destination: destinationLocation.name,
       budget,

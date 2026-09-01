@@ -10,7 +10,7 @@ import {
 } from "react-icons/fa";
 import "./FastTrackAirportPass.css";
 
-function FastTrackAirportPass({ onBack, username = "saraschandra" }) {
+function FastTrackAirportPass({ onBack, username = "Tourister" }) {
   const [flightNumber, setFlightNumber] = useState("6E-1402");
   const [originAirport, setOriginAirport] = useState("Hyderabad Rajiv Gandhi Intl (HYD)");
   const [destinationAirport, setDestinationAirport] = useState("Kathmandu Tribhuvan Intl (KTM)");

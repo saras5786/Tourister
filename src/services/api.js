@@ -2,14 +2,6 @@
 
 const API_BASE = "http://localhost:5000/api";
 
-const DEFAULT_USER = {
-  username: "saraschandra",
-  email: "saraschandra5786@gmail.com",
-  password: "password123",
-  userPoints: 300,
-  walletBalance: 2500,
-};
-
 // 1. User Login
 export async function loginUser(username, password) {
   try {
@@ -30,7 +22,7 @@ export async function loginUser(username, password) {
 
   // Local persistent storage fallback
   const rawUsers = localStorage.getItem("tourister_users");
-  const users = rawUsers ? JSON.parse(rawUsers) : [DEFAULT_USER];
+  const users = rawUsers ? JSON.parse(rawUsers) : [];
 
   const matched = users.find(
     (u) =>
@@ -66,7 +58,7 @@ export async function signupUser(username, email, password) {
 
   // Local persistent storage fallback
   const rawUsers = localStorage.getItem("tourister_users");
-  const users = rawUsers ? JSON.parse(rawUsers) : [DEFAULT_USER];
+  const users = rawUsers ? JSON.parse(rawUsers) : [];
 
   if (users.some((u) => u.username.toLowerCase() === username.toLowerCase())) {
     return { success: false, error: "Username already exists" };
