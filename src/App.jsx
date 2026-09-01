@@ -288,6 +288,13 @@ Whenever the user asks about a trip or destination, always structure your answer
   ================================= */
   const handleGetStarted = () => {
     setPage("auth");
+    setAuthMode("login");
+    setLoginInput("");
+    setLoginPassword("");
+    setSignupUsername("");
+    setSignupEmail("");
+    setSignupPassword("");
+    setSignupConfirmPassword("");
     setAuthError("");
     setAuthSuccess("");
   };
@@ -549,6 +556,8 @@ Whenever the user asks about a trip or destination, always structure your answer
                 className={authMode === "login" ? "auth-tab active" : "auth-tab"}
                 onClick={() => {
                   setAuthMode("login");
+                  setLoginInput("");
+                  setLoginPassword("");
                   setAuthError("");
                   setAuthSuccess("");
                 }}
@@ -561,6 +570,10 @@ Whenever the user asks about a trip or destination, always structure your answer
                 className={authMode === "signup" ? "auth-tab active" : "auth-tab"}
                 onClick={() => {
                   setAuthMode("signup");
+                  setSignupUsername("");
+                  setSignupEmail("");
+                  setSignupPassword("");
+                  setSignupConfirmPassword("");
                   setAuthError("");
                   setAuthSuccess("");
                 }}
@@ -582,9 +595,11 @@ Whenever the user asks about a trip or destination, always structure your answer
             )}
 
             {authMode === "login" && (
-              <form className="auth-form" onSubmit={handleLoginSubmit}>
+              <form className="auth-form" onSubmit={handleLoginSubmit} autoComplete="off">
                 <input
                   type="text"
+                  name="tourister_auth_user"
+                  autoComplete="off"
                   placeholder="Username or Email"
                   value={loginInput}
                   onChange={(e) => setLoginInput(e.target.value)}
@@ -592,6 +607,8 @@ Whenever the user asks about a trip or destination, always structure your answer
                 />
                 <input
                   type="password"
+                  name="tourister_auth_pass"
+                  autoComplete="new-password"
                   placeholder="Password"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}

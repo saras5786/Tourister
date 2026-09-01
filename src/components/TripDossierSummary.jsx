@@ -8,6 +8,7 @@ import {
   FaMagic,
   FaPrint,
 } from "react-icons/fa";
+import { exportDossierToPDF } from "../services/pdfService";
 import "./TripDossierSummary.css";
 
 function TripDossierSummary({ onBack }) {
@@ -117,7 +118,13 @@ STATUS: Complete Travel Plan Ready
   };
 
   const handlePrint = () => {
-    window.print();
+    if (!dossierText) return;
+    exportDossierToPDF(dossierText, {
+      origin,
+      destination,
+      days,
+      travelers,
+    });
   };
 
   return (

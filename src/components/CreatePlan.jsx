@@ -28,6 +28,7 @@ import initialCommunityPosts from "../data/communityPosts";
 import { getRealRouteSummary } from "../services/routeService";
 import { fetchRealTouristPlaces } from "../services/placesService";
 import { saveTripPlan } from "../services/api";
+import { exportTripPlanToPDF } from "../services/pdfService";
 import { puter } from "@heyputer/puter.js";
 import LocationAutocomplete from "./LocationAutocomplete";
 import TripPreferences from "./create-plan/TripPreferences";
@@ -235,7 +236,20 @@ Give 3 concise bullet points:
   };
 
   const handlePrintPDF = () => {
-    window.print();
+    exportTripPlanToPDF({
+      source: sourceLocation.name,
+      destination: destinationLocation.name,
+      durationDays: Number(durationDays),
+      travelers: Number(travelers),
+      budget,
+      transport,
+      routeSummary,
+      chosenAttractions,
+      selectedGuide,
+      hotelRecommendation,
+      isFlightTrip,
+      username: username || "Tourister Traveler",
+    });
   };
 
   const handleSaveItinerary = async () => {
