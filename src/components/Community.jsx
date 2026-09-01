@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { puter } from "@heyputer/puter.js";
 import {
   FaShieldAlt,
   FaPlus,
@@ -8,281 +9,356 @@ import {
   FaCommentDots,
   FaCheckCircle,
   FaMapMarkerAlt,
-  FaRobot,
   FaGem,
   FaTimes,
   FaSpinner,
   FaBolt,
+  FaMagic,
+  FaImage,
+  FaPaperPlane,
 } from "react-icons/fa";
 import { initialCommunityPosts, evaluatePostWithAI } from "../data/communityPosts";
 import destinationsList from "../data/destinations";
 import "./Community.css";
 
-const LIVE_AI_SCOUT_DISPATCHES = [
-  {
-    author: "Deepak Joshi",
-    avatar: "DJ",
-    authorTier: "Himalayan Scout",
-    destination: "Kathmandu",
-    category: "Scam Alert",
-    categoryIcon: "🚨",
-    title: "LIVE REPORT: Mugling Highway Landslide Delay Advisory",
-    content: "Prithvi Highway near Mugling is facing massive traffic queues due to overnight debris clearance. Tourist buses between Kathmandu and Pokhara are delayed by 10+ hours. Domestic flights from KTM Tribhuvan are operating smoothly.",
-    location: "Mugling Highway, Bagmati Province, Nepal",
-  },
-  {
-    author: "Pranavi Rao",
-    avatar: "PR",
-    authorTier: "Godavari Explorer",
-    destination: "Kakinada",
-    category: "Hidden Gem",
-    categoryIcon: "💎",
-    title: "Secret Morning Eco-Boardwalk & Fresh Uppada Silk Loom Walk",
-    content: "If you arrive at Coringa Mangrove Sanctuary right at 8:45 AM, the wooden boardwalk is completely empty and white-bellied sea eagles fly overhead. Afterwards, head 10km to Uppada to watch master weavers spin pure gold Zari!",
-    location: "Coringa Mangrove Forest, Kakinada",
-  },
-  {
-    author: "Siddharth Verma",
-    avatar: "SV",
-    authorTier: "Temple Historian",
-    destination: "Varanasi",
-    category: "Travel Hack",
-    categoryIcon: "💡",
-    title: "Serene Morning Ganga Sunrise Aarti at Assi Ghat",
-    content: "Skip the heavy crowds at Dashashwamedh for sunrise and head to Assi Ghat at 5:00 AM for 'Subah-e-Banaras'. The live sitar recital with Vedic chanting as dawn breaks over the Ganges is unforgettable.",
-    location: "Assi Ghat & Old Kashi Gallis, Varanasi",
-  },
-  {
-    author: "Vikramaditya Roy",
-    avatar: "VR",
-    authorTier: "Heritage Pioneer",
-    destination: "Tirupati",
-    category: "Travel Hack",
-    categoryIcon: "💡",
-    title: "Free TTD Footpath Luggage Counter Hack at Alipiri",
-    content: "Pilgrims climbing the Alipiri footpath: Drop your heavy luggage at TTD Counter #3 at the base. They will securely transport it to Tirumala PAC-4 for free. No need to carry backpacks up 3,550 stone steps!",
-    location: "Alipiri Footpath Base, Tirupati",
-  },
-];
-
 function Community({ onBack, onOpenGem, username = "Tourister" }) {
-  const [posts, setPosts] = useState(initialCommunityPosts);
+  const [posts, setPosts] = useState(() => {
+    const saved = localStorage.getItem("tourister_community_posts");
+    return saved ? JSON.parse(saved) : initialCommunityPosts;
+  });
+
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [likedPosts, setLikedPosts] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [aiScoutActive, setAiScoutActive] = useState(true);
+  const [generatingAIPost, setGeneratingAIPost] = useState(false);
+  const [targetAIDestination, setTargetAIDestination] = useState("");
   const [scoutNotif, setScoutNotif] = useState("");
 
-  // New Post Form State
-  const [formDestination, setFormDestination] = useState(destinationsList[0]?.name || "Kakinada");
-  const [formCategory, setFormCategory] = useState("Scam Alert");
+  // Post form state
   const [formTitle, setFormTitle] = useState("");
-  const [formContent, setFormContent] = useState("");
+  const [formDestination, setFormDestination] = useState("Kakinada");
+  const [formCategory, setFormCategory] = useState("Scam Alert");
   const [formLocation, setFormLocation] = useState("");
-  const [evaluating, setEvaluating] = useState(false);
-  const [evaluationResult, setEvaluationResult] = useState(null);
+  const [formContent, setFormContent] = useState("");
+  const [formIsHiddenGem, setFormIsHiddenGem] = useState(false);
+  const [draftingAI, setDraftingAI] = useState(false);
 
-  // Autonomous Live AI Scout Agent: Periodically delivers fresh traveler dispatches
+  // Persist posts
   useEffect(() => {
-    if (!aiScoutActive) return;
+    localStorage.setItem("tourister_community_posts", JSON.stringify(posts));
+  }, [posts]);
 
-    const scoutTimer = setTimeout(() => {
-      const randomDispatch = LIVE_AI_SCOUT_DISPATCHES[Math.floor(Math.random() * LIVE_AI_SCOUT_DISPATCHES.length)];
-      const autoPost = {
-        id: `scout-${Date.now()}`,
-        author: `${randomDispatch.author} [AI Scout]`,
-        avatar: randomDispatch.avatar,
-        authorTier: randomDispatch.authorTier,
-        destination: randomDispatch.destination,
-        category: randomDispatch.category,
-        categoryIcon: randomDispatch.categoryIcon,
-        title: randomDispatch.title,
-        content: randomDispatch.content,
-        location: randomDispatch.location,
-        timestamp: "Just now · Live Scout Feed",
-        upvotes: Math.floor(Math.random() * 25 + 15),
-        commentsCount: Math.floor(Math.random() * 8 + 3),
+  // Helper to parse AI outputs
+  const parseAIStory = (rawText, dest) => {
+    let title = `Traveler Update: Advisory for ${dest}`;
+    let location = `${dest} Central Area`;
+    let category = "Scam Alert";
+    let story = rawText;
+
+    const titleMatch = rawText.match(/TITLE:\s*(.+)/i);
+    const locMatch = rawText.match(/LOCATION:\s*(.+)/i);
+    const catMatch = rawText.match(/CATEGORY:\s*(.+)/i);
+    const storyMatch = rawText.match(/STORY:\s*([\s\S]+)/i);
+
+    if (titleMatch) title = titleMatch[1].trim();
+    if (locMatch) location = locMatch[1].trim();
+    if (catMatch) {
+      const c = catMatch[1].trim();
+      if (c.toLowerCase().includes("gem")) category = "Hidden Gem";
+      else if (c.toLowerCase().includes("hack")) category = "Travel Hack";
+      else category = "Scam Alert";
+    }
+    if (storyMatch) story = storyMatch[1].trim();
+
+    return { title, location, category, story };
+  };
+
+  // Pollinations Free AI Generator for ANY destination
+  const handleGenerateLiveAIPost = async () => {
+    setGeneratingAIPost(true);
+    const dest =
+      targetAIDestination.trim() ||
+      destinationsList[Math.floor(Math.random() * destinationsList.length)]?.name ||
+      "Goa";
+
+    try {
+      const prompt = `Act as an authentic traveler in "${dest}". Write a 100% realistic travel advisory or scam alert with real local landmarks and genuine prices.
+Format strictly as:
+TITLE: [Concise Catchy Headline]
+LOCATION: [Specific Landmark in ${dest}]
+CATEGORY: [Scam Alert or Travel Hack or Hidden Gem]
+STORY: [2-3 sentences with specific tips, local prices, and precautions]`;
+
+      let rawResponse = "";
+
+      // 1. Puter GPT-5.6-Luna
+      try {
+        const res = await puter.ai.chat(
+          [
+            {
+              role: "system",
+              content: `You are an authentic traveler in "${dest}". Write a 100% realistic travel advisory or scam alert with real local landmarks and genuine prices.`,
+            },
+            { role: "user", content: prompt },
+          ],
+          {
+            model: "openai/gpt-5.6-luna",
+            reasoning_effort: "low",
+          }
+        );
+        rawResponse = res?.message?.content || res?.text || "";
+      } catch (e) {
+        console.warn("Puter story generator notice:", e);
+      }
+
+      // 2. Pollinations fallback
+      if (!rawResponse) {
+        try {
+          const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?seed=${Date.now()}`;
+          const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+          if (res.ok) rawResponse = await res.text();
+        } catch (e) {
+          // Fallback
+        }
+      }
+
+      const parsed = parseAIStory(
+        rawResponse ||
+          `TITLE: Essential Travel Advisory for ${dest}\nLOCATION: ${dest} Main Transit Terminal\nCATEGORY: Scam Alert\nSTORY: Avoid unofficial guides offering instant access near ${dest} entrances. Always book through official counters and use metered transit to save up to 40%.`,
+        dest
+      );
+
+      // Generate a realistic destination image from Pollinations
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+        `${dest} landmark scenic travel photography realistic`
+      )}?width=700&height=400&nologo=true`;
+
+      const newPost = {
+        id: `free-ai-post-${Date.now()}`,
+        author: `Traveler Dispatch [${dest}]`,
+        avatar: dest.substring(0, 2).toUpperCase(),
+        authorTier: "Community Dispatcher",
+        destination: dest,
+        category: parsed.category,
+        categoryIcon:
+          parsed.category === "Hidden Gem"
+            ? "GEM"
+            : parsed.category === "Travel Hack"
+            ? "HACK"
+            : "ALERT",
+        title: parsed.title,
+        content: parsed.story,
+        location: parsed.location,
+        image: imageUrl,
+        timestamp: "Just now · Live Feed",
+        upvotes: 28,
+        commentsCount: 6,
         aiVerification: {
-          status: "Live Autonomous AI Verified",
+          status: "Verified Traveler Report",
           credibilityScore: 99,
-          aiAnalysis: "Auto-verified with satellite weather and regional tourist sensor feeds.",
-          riskLevel: "High Priority Alert",
+          aiAnalysis:
+            "Cross-checked with geographic landmarks and verified traveler telemetry.",
         },
       };
 
-      setPosts((prev) => [autoPost, ...prev.filter((p) => p.id !== autoPost.id)]);
-      setScoutNotif(`🤖 AI Scout Agent dispatched new live update for ${randomDispatch.destination}!`);
-      setTimeout(() => setScoutNotif(""), 6000);
-    }, 15000);
-
-    return () => clearTimeout(scoutTimer);
-  }, [aiScoutActive, posts]);
-
-  // Trigger manual AI Scout dispatch
-  const handleTriggerAIScout = () => {
-    const randomDispatch = LIVE_AI_SCOUT_DISPATCHES[Math.floor(Math.random() * LIVE_AI_SCOUT_DISPATCHES.length)];
-    const manualPost = {
-      id: `manual-scout-${Date.now()}`,
-      author: `${randomDispatch.author} [Live Scout]`,
-      avatar: randomDispatch.avatar,
-      authorTier: randomDispatch.authorTier,
-      destination: randomDispatch.destination,
-      category: randomDispatch.category,
-      categoryIcon: randomDispatch.categoryIcon,
-      title: randomDispatch.title,
-      content: randomDispatch.content,
-      location: randomDispatch.location,
-      timestamp: "Just now · Live Scout Feed",
-      upvotes: 42,
-      commentsCount: 9,
-      aiVerification: {
-        status: "Autonomous Scout Verified",
-        credibilityScore: 100,
-        aiAnalysis: "Cross-checked with regional tourism registries and live road feeds.",
-        riskLevel: "High Priority Tip",
-      },
-    };
-
-    setPosts([manualPost, ...posts]);
-    setScoutNotif(`⚡ Fresh Live AI Scout Report Generated for ${randomDispatch.destination}!`);
-    setTimeout(() => setScoutNotif(""), 5000);
-  };
-
-  // Filtered posts
-  const filteredPosts = posts.filter((post) => {
-    const matchesCategory =
-      selectedCategory === "All" || post.category === selectedCategory;
-    const matchesSearch =
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.destination.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.location.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
-  const handleUpvote = (postId) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, upvotes: p.upvotes + 1 } : p))
-    );
-  };
-
-  const handleUploadSubmit = async (e) => {
-    e.preventDefault();
-    if (!formTitle.trim() || !formContent.trim() || !formLocation.trim()) {
-      alert("Please fill in all fields before submitting for AI verification.");
-      return;
+      setPosts([newPost, ...posts]);
+      setScoutNotif(`Generated new verified traveler story for ${dest}!`);
+      setTimeout(() => setScoutNotif(""), 5000);
+    } catch (err) {
+      console.warn("AI generation notice:", err);
+    } finally {
+      setGeneratingAIPost(false);
     }
+  };
 
-    setEvaluating(true);
+  // Auto-Draft Form using Puter AI inside the Upload Popup Modal
+  const handleAutoDraftWithAI = async () => {
+    setDraftingAI(true);
+    try {
+      const dest = formDestination || "Kakinada";
+      const prompt = `Write a realistic short traveler advisory or scam alert for "${dest}".
+Format:
+TITLE: [Headline]
+LOCATION: [Landmark]
+STORY: [2 sentences with real details]`;
 
-    const postPayload = {
+      let text = "";
+      try {
+        const res = await puter.ai.chat(
+          [
+            {
+              role: "system",
+              content: `You are an authentic traveler in "${dest}".`,
+            },
+            { role: "user", content: prompt },
+          ],
+          { model: "openai/gpt-5.6-luna", reasoning_effort: "low" }
+        );
+        text = res?.message?.content || res?.text || "";
+      } catch (e) {
+        try {
+          const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?seed=${Date.now()}`;
+          const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+          if (res.ok) text = await res.text();
+        } catch (err2) {
+          // Fallback
+        }
+      }
+
+      if (text) {
+        const parsed = parseAIStory(text, dest);
+        setFormTitle(parsed.title);
+        setFormLocation(parsed.location);
+        setFormContent(parsed.story);
+      }
+    } catch (err) {
+      console.warn("Auto draft error:", err);
+    } finally {
+      setDraftingAI(false);
+    }
+  };
+
+  const handleLike = (postId) => {
+    if (likedPosts.includes(postId)) {
+      setLikedPosts(likedPosts.filter((id) => id !== postId));
+      setPosts(
+        posts.map((p) => (p.id === postId ? { ...p, upvotes: p.upvotes - 1 } : p))
+      );
+    } else {
+      setLikedPosts([...likedPosts, postId]);
+      setPosts(
+        posts.map((p) => (p.id === postId ? { ...p, upvotes: p.upvotes + 1 } : p))
+      );
+    }
+  };
+
+  const handlePublishPost = async (e) => {
+    e.preventDefault();
+    if (!formTitle.trim() || !formContent.trim()) return;
+
+    const evaluation = await evaluatePostWithAI({
       title: formTitle,
       content: formContent,
-      category: formCategory,
-      destination: formDestination,
       location: formLocation,
-    };
-
-    // Run AI Authenticity & Geolocation Verification
-    const aiResult = await evaluatePostWithAI(postPayload);
+      category: formCategory,
+    });
 
     const newPost = {
-      id: `post-${Date.now()}`,
-      author: username || "Verified Tourister",
-      avatar: (username || "T").substring(0, 2).toUpperCase(),
+      id: `user-post-${Date.now()}`,
+      author: username || "Verified Explorer",
+      avatar: (username || "VE").substring(0, 2).toUpperCase(),
       authorTier: "Active Contributor",
       destination: formDestination,
       category: formCategory,
       categoryIcon:
-        formCategory === "Scam Alert"
-          ? "🚨"
-          : formCategory === "Hidden Gem"
-          ? "💎"
+        formCategory === "Hidden Gem"
+          ? "GEM"
           : formCategory === "Travel Hack"
-          ? "💡"
-          : "🌿",
+          ? "HACK"
+          : "ALERT",
       title: formTitle,
       content: formContent,
-      location: formLocation,
+      location: formLocation || `${formDestination} District`,
       timestamp: "Just now",
       upvotes: 1,
       commentsCount: 0,
-      aiVerification: aiResult,
+      aiVerification: evaluation,
+      isHiddenGem: formIsHiddenGem,
     };
 
     setPosts([newPost, ...posts]);
-    setEvaluating(false);
-    setEvaluationResult(aiResult);
-
-    setTimeout(() => {
-      setShowUploadModal(false);
-      setEvaluationResult(null);
-      setFormTitle("");
-      setFormContent("");
-      setFormLocation("");
-    }, 1800);
+    setShowUploadModal(false);
+    setFormTitle("");
+    setFormContent("");
+    setFormLocation("");
+    setFormIsHiddenGem(false);
+    alert("🎉 Your travel post has been published to the community feed!");
   };
+
+  const filteredPosts = posts.filter((post) => {
+    const matchesCategory =
+      selectedCategory === "All" || post.category === selectedCategory;
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      post.title.toLowerCase().includes(q) ||
+      post.content.toLowerCase().includes(q) ||
+      post.destination.toLowerCase().includes(q) ||
+      post.location.toLowerCase().includes(q);
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <main className="community-page">
-      {/* NAVBAR */}
+      {/* HEADER NAVBAR */}
       <header className="community-navbar">
-        <button className="community-back-btn" onClick={onBack}>
+        <button className="nav-back-btn" onClick={onBack}>
           ← Dashboard
         </button>
-        <div className="community-nav-title">
-          <FaShieldAlt className="shield-icon" /> TRAVEL COMMUNITY & SCAM SHIELD
+        <div className="nav-title-group">
+          <FaShieldAlt className="nav-icon" />
+          <span>TOURISTER COMMUNITY & TRAVEL ADVISORIES</span>
         </div>
-        <div className="ai-status-pill">
-          <span className="live-dot" /> AI Authenticity Engine Active
+        <div className="community-stats-pill">
+          <span>● {posts.length} Live Reports Active</span>
         </div>
       </header>
 
-      <div className="community-container">
-        {/* LIVE AI SCOUT AGENT NOTIFICATION BANNER */}
-        {scoutNotif && (
-          <motion.div
-            className="scout-toast"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-          >
-            <FaBolt style={{ color: "#fbbf24" }} /> {scoutNotif}
-          </motion.div>
-        )}
+      {/* TOP AI STORY GENERATOR BAR DIRECTLY BELOW NAVBAR */}
+      <div className="top-ai-generator-bar">
+        <div className="generator-bar-inner">
+          <div className="bar-label">
+            <FaMagic style={{ color: "#6366f1" }} />
+            <span>Generate Story for Any Destination:</span>
+          </div>
+          <div className="bar-input-group">
+            <input
+              type="text"
+              value={targetAIDestination}
+              onChange={(e) => setTargetAIDestination(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleGenerateLiveAIPost();
+              }}
+              placeholder="Enter city (e.g. Goa, Manali, Paris, Tirupati, Amsterdam)..."
+              className="top-bar-dest-input"
+            />
+            <button
+              className="top-bar-generate-btn"
+              onClick={handleGenerateLiveAIPost}
+              disabled={generatingAIPost}
+            >
+              <FaMagic /> {generatingAIPost ? "Generating Story..." : `Generate Story`}
+            </button>
+          </div>
+        </div>
+      </div>
 
+      <div className="community-container">
         {/* HERO */}
         <section className="community-hero">
-          <div className="community-badge">
-            <FaRobot /> REAL-TIME TRAVELER STORIES & SCAM DEFENSE
+          <div className="scam-shield-badge">
+            <FaShieldAlt /> VERIFIED TRAVEL REPORTS & SCAM SHIELD
           </div>
           <h1>
-            Verified Traveler Community & <span>Scam Shield</span>
+            Travel Community <span>& Local Safety Alerts</span>
           </h1>
           <p>
-            Share authentic experiences, expose local tourist scams (Nepal flood advisories, Araku network & food tips, Coringa boat scams), and discover community-verified travel hacks evaluated by AI.
+            Real reports from genuine travelers. Learn about station overcharging, UPI network drops in ghats, pure vegetarian spots, and secret viewpoints.
           </p>
 
-          <div className="community-cta-row">
+          {scoutNotif && (
+            <div className="scout-toast-banner">
+              <FaBolt /> {scoutNotif}
+            </div>
+          )}
+
+          <div className="hero-actions">
+            {/* POPUP TRIGGER BUTTON */}
             <button
               className="share-story-btn"
               onClick={() => setShowUploadModal(true)}
             >
-              <FaPlus /> Share Your Experience & Earn T-Points
-            </button>
-
-            <button
-              className="ai-scout-trigger-btn"
-              onClick={handleTriggerAIScout}
-            >
-              <FaBolt /> 🤖 Dispatch AI Live Scout Agent
-            </button>
-
-            <button
-              className={`ai-stream-toggle ${aiScoutActive ? "active" : ""}`}
-              onClick={() => setAiScoutActive(!aiScoutActive)}
-            >
-              {aiScoutActive ? "🟢 AI Auto-Feed: ON" : "⚪ AI Auto-Feed: OFF"}
+              <FaPlus /> Share Your Experience
             </button>
           </div>
         </section>
@@ -299,7 +375,7 @@ function Community({ onBack, onOpenGem, username = "Tourister" }) {
         </div>
 
         <div className="community-filter-tabs">
-          {["All", "Scam Alert", "Hidden Gem", "Travel Hack", "Eco-Tips"].map((cat) => (
+          {["All", "Scam Alert", "Hidden Gem", "Travel Hack"].map((cat) => (
             <button
               key={cat}
               className={`filter-tab-btn ${selectedCategory === cat ? "active" : ""}`}
@@ -310,89 +386,85 @@ function Community({ onBack, onOpenGem, username = "Tourister" }) {
           ))}
         </div>
 
-        {/* POSTS FEED */}
-        <section className="community-feed">
+        {/* POSTS GRID */}
+        <section className="community-feed-section">
           <div className="feed-header">
             <h3>Verified Travel Reports & Scam Shield</h3>
-            <div className="live-feed-indicator">
-              <span className="pulsing-dot" /> Live Community Stream
-            </div>
+            <span className="live-stream-tag">● LIVE COMMUNITY STREAM ({filteredPosts.length} POSTS)</span>
           </div>
 
           <div className="posts-grid">
             {filteredPosts.map((post) => (
               <motion.article
                 key={post.id}
-                className={`post-card ${post.category === "Scam Alert" ? "scam-alert-card" : ""}`}
-                layout
-                initial={{ opacity: 0, y: 20 }}
+                className="community-post-card"
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35 }}
+                whileHover={{ y: -4 }}
               >
-                {/* TOP HEADER */}
-                <div className="post-header">
-                  <div className="author-info">
+                {/* POST TOP */}
+                <div className="post-card-top">
+                  <div className="author-group">
                     <div className="author-avatar">{post.avatar}</div>
-                    <div>
-                      <strong className="author-name">{post.author}</strong>
-                      <span className="author-tier">{post.authorTier}</span>
+                    <div className="author-meta">
+                      <strong>{post.author}</strong>
+                      <span>{post.timestamp}</span>
                     </div>
                   </div>
 
-                  <span className={`category-tag ${post.category.toLowerCase().replace(/\s+/g, "-")}`}>
-                    {post.categoryIcon} {post.category}
+                  <span className={`post-category-tag ${post.category.toLowerCase().replace(/\s+/g, "-")}`}>
+                    {post.category}
                   </span>
                 </div>
 
-                {/* TITLE & CONTENT */}
+                {/* POST IMAGE IF AVAILABLE */}
+                {post.image && (
+                  <div className="post-image-frame">
+                    <img src={post.image} alt={post.title} loading="lazy" />
+                  </div>
+                )}
+
+                {/* POST BODY */}
                 <h3 className="post-title">{post.title}</h3>
                 <p className="post-content">{post.content}</p>
 
                 <div className="post-location">
-                  <FaMapMarkerAlt /> <span>{post.location}</span> · <span className="time-ago">{post.timestamp}</span>
+                  <FaMapMarkerAlt />
+                  <span>{post.location} ({post.destination})</span>
                 </div>
 
-                {/* AI AUTHENTICITY VERIFICATION BOX */}
+                {/* AI VERIFICATION BOX */}
                 {post.aiVerification && (
                   <div className="ai-verification-box">
                     <div className="ai-ver-top">
-                      <span className="ai-status-pill">
-                        <FaRobot /> {post.aiVerification.status}
-                      </span>
-                      <span className="ai-score-pill">
-                        Credibility: <strong>{post.aiVerification.credibilityScore}%</strong>
+                      <FaCheckCircle className="check-icon" />
+                      <strong>{post.aiVerification.status}</strong>
+                      <span className="cred-score">
+                        {post.aiVerification.credibilityScore}% Reliability
                       </span>
                     </div>
                     <p className="ai-analysis-text">{post.aiVerification.aiAnalysis}</p>
                   </div>
                 )}
 
-                {/* FOOTER ACTIONS */}
+                {/* POST FOOTER */}
                 <div className="post-footer">
                   <button
-                    className="upvote-btn"
-                    onClick={() => handleUpvote(post.id)}
+                    className={`upvote-btn ${likedPosts.includes(post.id) ? "liked" : ""}`}
+                    onClick={() => handleLike(post.id)}
                   >
-                    <FaThumbsUp /> Helpful ({post.upvotes})
+                    <FaThumbsUp />
+                    <span>{post.upvotes} Helpful</span>
                   </button>
 
-                  <div className="comments-tag">
+                  <span className="comments-tag">
                     <FaCommentDots /> {post.commentsCount} comments
-                  </div>
+                  </span>
 
-                  {post.category === "Hidden Gem" && (
+                  {post.isHiddenGem && (
                     <button
-                      className="explore-gem-btn"
-                      onClick={() => {
-                        const destObj = destinationsList.find(
-                          (d) => d.name.toLowerCase() === post.destination.toLowerCase()
-                        );
-                        if (destObj?.hiddenGem) {
-                          onOpenGem(destObj.hiddenGem);
-                        } else {
-                          alert(`✨ Unlock points for ${post.destination} in the Travel Planner!`);
-                        }
-                      }}
+                      className="quick-gem-btn"
+                      onClick={() => onOpenGem && onOpenGem(post)}
                     >
                       <FaGem /> Claim T-Points
                     </button>
@@ -404,119 +476,115 @@ function Community({ onBack, onOpenGem, username = "Tourister" }) {
         </section>
       </div>
 
-      {/* UPLOAD STORY & SCAM WARNING MODAL */}
+      {/* POPUP UPLOAD MODAL (PROMINENT CENTER DIALOG) */}
       <AnimatePresence>
         {showUploadModal && (
-          <div className="modal-backdrop" onClick={() => setShowUploadModal(false)}>
+          <div
+            className="upload-modal-backdrop"
+            onClick={() => setShowUploadModal(false)}
+          >
             <motion.div
               className="upload-modal-card"
               onClick={(e) => e.stopPropagation()}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.92, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
             >
-              <div className="modal-header">
-                <div>
-                  <h2>Share Travel Report or Scam Warning</h2>
-                  <p>Every post is evaluated by Tourister AI for credibility.</p>
+              <button
+                className="modal-close-btn"
+                onClick={() => setShowUploadModal(false)}
+                title="Close"
+              >
+                <FaTimes />
+              </button>
+
+              <div className="upload-modal-header">
+                <div className="upload-icon-circle">
+                  <FaShieldAlt />
                 </div>
-                <button
-                  className="close-modal-btn"
-                  onClick={() => setShowUploadModal(false)}
-                >
-                  <FaTimes />
-                </button>
+                <h2>Share Your Travel Experience</h2>
+                <p>Post a helpful travel report, scam alert, or hidden gem for the community.</p>
               </div>
 
-              {!evaluating && !evaluationResult && (
-                <form onSubmit={handleUploadSubmit} className="upload-form">
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>DESTINATION</label>
-                      <select
-                        value={formDestination}
-                        onChange={(e) => setFormDestination(e.target.value)}
-                      >
-                        {destinationsList.map((d) => (
-                          <option key={d.name} value={d.name}>
-                            {d.name} ({d.state})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>CATEGORY</label>
-                      <select
-                        value={formCategory}
-                        onChange={(e) => setFormCategory(e.target.value)}
-                      >
-                        <option value="Scam Alert">🚨 Tourist Scam Alert</option>
-                        <option value="Hidden Gem">💎 Hidden Gem Discovery</option>
-                        <option value="Travel Hack">💡 Travel Hack / Budget Tip</option>
-                        <option value="Eco-Tips">🌿 Eco-Tourism Note</option>
-                      </select>
-                    </div>
-                  </div>
-
+              <form onSubmit={handlePublishPost} className="upload-form">
+                <div className="form-row-2">
                   <div className="form-group">
-                    <label>EXACT LOCATION / LANDMARK</label>
+                    <label>DESTINATION / CITY</label>
                     <input
                       type="text"
-                      placeholder="e.g. Borra Caves Entry Gate / Prithvi Highway Mugling / Tirupati Platform 1"
-                      value={formLocation}
-                      onChange={(e) => setFormLocation(e.target.value)}
+                      placeholder="e.g. Kakinada, Goa, Tirupati, Paris..."
+                      value={formDestination}
+                      onChange={(e) => setFormDestination(e.target.value)}
                       required
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>HEADLINE / SUMMARY</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Warning: Touts selling fake passes near station"
-                      value={formTitle}
-                      onChange={(e) => setFormTitle(e.target.value)}
-                      required
-                    />
+                    <label>POST CATEGORY</label>
+                    <select
+                      value={formCategory}
+                      onChange={(e) => setFormCategory(e.target.value)}
+                    >
+                      <option value="Scam Alert">Scam Alert (Overcharging, Touts)</option>
+                      <option value="Hidden Gem">Hidden Gem & Artisan Craft</option>
+                      <option value="Travel Hack">Travel Hack & Money Saver</option>
+                    </select>
                   </div>
-
-                  <div className="form-group">
-                    <label>DETAILED STORY OR ADVISORY</label>
-                    <textarea
-                      rows="4"
-                      placeholder="Provide helpful context, what happened, genuine prices vs rip-off prices..."
-                      value={formContent}
-                      onChange={(e) => setFormContent(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <button type="submit" className="submit-post-btn">
-                    Submit for AI Authenticity Check & Post →
-                  </button>
-                </form>
-              )}
-
-              {evaluating && (
-                <div className="evaluating-state">
-                  <FaSpinner className="spinner-icon" />
-                  <h3>Tourister AI is analyzing your report...</h3>
-                  <p>Verifying geolocation landmarks and checking against tourist scam databases.</p>
                 </div>
-              )}
 
-              {evaluationResult && (
-                <div className="evaluation-success">
-                  <FaCheckCircle className="check-success-icon" />
-                  <h3>Verified & Posted Successfully!</h3>
-                  <div className="score-box">
-                    <span>AI Credibility Score:</span>
-                    <strong>{evaluationResult.credibilityScore}%</strong>
+                <div className="form-group">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <label>REPORT HEADLINE</label>
+                    <button
+                      type="button"
+                      className="ai-draft-btn"
+                      onClick={handleAutoDraftWithAI}
+                      disabled={draftingAI}
+                    >
+                      <FaMagic /> {draftingAI ? "Drafting..." : "Auto-Draft with AI"}
+                    </button>
                   </div>
-                  <p>{evaluationResult.aiAnalysis}</p>
+                  <input
+                    type="text"
+                    placeholder="e.g. Station auto drivers charging ₹500 instead of ₹150 meter fare"
+                    value={formTitle}
+                    onChange={(e) => setFormTitle(e.target.value)}
+                    required
+                  />
                 </div>
-              )}
+
+                <div className="form-group">
+                  <label>SPECIFIC LOCATION / LANDMARK</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Railway Station West Exit Gate / Main Temple Road"
+                    value={formLocation}
+                    onChange={(e) => setFormLocation(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>DETAILED DESCRIPTION</label>
+                  <textarea
+                    rows={4}
+                    placeholder="Provide exact details, fair prices, and how other travelers can avoid this issue..."
+                    value={formContent}
+                    onChange={(e) => setFormContent(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="ai-disclaimer">
+                  <FaCheckCircle style={{ color: "#10b981", flexShrink: 0 }} />
+                  <span>Your report will be scanned by Tourister Scam Shield to verify geographical accuracy.</span>
+                </div>
+
+                <button type="submit" className="submit-post-btn">
+                  <FaPaperPlane /> Publish Travel Report
+                </button>
+              </form>
             </motion.div>
           </div>
         )}

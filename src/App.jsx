@@ -11,6 +11,15 @@ import HiddenGemModal from "./components/HiddenGemModal";
 import FastTrackAirportPass from "./components/FastTrackAirportPass";
 import SeasonalAdvisories from "./components/SeasonalAdvisories";
 
+// New Hackathon Innovation Components
+import MultiAgentSquad from "./components/MultiAgentSquad";
+import BudgetEstimator from "./components/BudgetEstimator";
+import CrowdGemsRadar from "./components/CrowdGemsRadar";
+import InfluencerStudio from "./components/InfluencerStudio";
+import TripDossierSummary from "./components/TripDossierSummary";
+import Background3D from "./components/Background3D";
+import { loginUser, signupUser, updateUserData } from "./services/api";
+
 import touristerAI from "./assets/tourister-ai.png";
 import touristerWallet from "./assets/tourister-wallet.png";
 import universityLogo from "./assets/aditya-logo.png";
@@ -35,6 +44,12 @@ import {
   FaPlaneDeparture,
   FaExclamationTriangle,
   FaBullhorn,
+  FaUsers,
+  FaMoneyBillWave,
+  FaCamera,
+  FaFileAlt,
+  FaGem,
+  FaMagic,
 } from "react-icons/fa";
 
 import "./App.css";
@@ -126,7 +141,7 @@ function App() {
     {
       role: "assistant",
       content:
-        "Hello! I am Tourister AI, your end-to-end intelligent travel companion. Tell me where you are starting from, where you want to travel, your budget, and number of days. I will provide a complete blueprint from departure transit, hotel stays, sacred temple timings, local food, scam alerts, and return journey logistics!",
+        "Hello! I am Tourister, your travel assistant. Tell me where you are starting from, where you want to travel, your budget, and number of days. I will help plan your entire journey with places to visit, hotels, temple timings, local food, and scam alerts!",
     },
   ]);
   const [aiLoading, setAiLoading] = useState(false);
@@ -155,21 +170,19 @@ function App() {
         {
           role: "system",
           content: `
-You are Tourister AI, powered by an advanced GPT model.
-You are an intelligent travel planning assistant providing exhaustive, end-to-end travel guidance from the very start.
-Your job is to understand the complete conversation and remember information provided earlier.
+You are Tourister AI, a helpful, friendly, and expert travel assistant.
+You provide clear, well-structured, and practical travel plans with transit details, hotels, attractions, local food, safety advice, and timing tips.
+Keep explanations simple, natural, and easy to follow.
 
 Whenever the user asks about a trip or destination, always structure your answer with:
 1. 🚆 Departure & Transit (Origin to Destination options with train/flight names & travel duration)
-2. 🛺 Arrival & Station Auto-Transit (Arrival junction, fixed-meter auto tips to avoid touts)
+2. 🛺 Arrival & Station Transit (Arrival junction, fixed-meter auto tips to avoid touts)
 3. 🏨 Accommodation Tiers (Budget ₹, Moderate ₹₹, Heritage/Luxury ₹₹₹)
-4. 🗓️ Comprehensive Day-by-Day Schedule (Morning, Afternoon, Evening, including sacred temples, darshan dress codes, and entry fees)
-5. 🍲 Authentic Regional Gastronomy (Must-try iconic local dishes & famous street food stalls)
+4. 🗓️ Day-by-Day Schedule (Morning, Afternoon, Evening, including sacred temples, darshan dress codes, and entry fees)
+5. 🍲 Authentic Regional Food (Must-try iconic local dishes & famous street food stalls)
 6. 🚨 Scam Shield Warnings (Specific tourist scams, fake gemstone touts, unofficial priests to avoid)
 7. 💎 Verified Hidden Gems & T-Points (Authentic GI artisan workshops & cultural heritage)
 8. 🎒 Return Journey & Packing Checklist.
-
-Be conversational, comprehensive, intelligent, structured, and helpful.
           `,
         },
         ...updatedMessages.map((message) => ({
@@ -178,7 +191,6 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
         })),
       ];
 
-      /* GPT THROUGH PUTER */
       const response = await puter.ai.chat(messages, {
         model: "openai/gpt-5.6-luna",
         tools: [
@@ -203,14 +215,14 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
         },
       ]);
     } catch (error) {
-      console.error("Tourister AI Error, switching to intelligent simulator fallback:", error);
+      console.error("Travel Assistant fallback engaged:", error);
 
       // Robust Intelligent Fallback Simulation
       setTimeout(() => {
-        let fallbackReply = `Here is your complete Tourister AI Blueprint for "${userMessage}":\n\n` +
+        let fallbackReply = `Here is your complete Tourister travel plan for "${userMessage}":\n\n` +
           `🚆 **1. Departure Transit & Arrival:**\n` +
           `• Recommended Transit: Superfast Express Train (9-10h) or 1h Flight.\n` +
-          `• Station Arrival: Use Tourister Auto-Transit Sync upon reaching the station for prepaid fixed-meter rates to avoid station touts.\n\n` +
+          `• Station Arrival: Use Tourister Station Transit Sync upon reaching the station for prepaid fixed-meter rates to avoid station touts.\n\n` +
           `🏨 **2. Recommended Stays:**\n` +
           `• Budget: Verified Homestays near heritage zone (~₹1,200/night)\n` +
           `• Comfort: Premium Hotel with temple/beach view (~₹2,800/night)\n\n` +
@@ -291,37 +303,27 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
     setAuthSuccess("");
   };
 
-  const handleLoginSubmit = (event) => {
+  const handleLoginSubmit = async (event) => {
     event.preventDefault();
     setAuthError("");
     setAuthSuccess("");
 
-    const users = JSON.parse(localStorage.getItem("tourister_users") || "[]");
-    const found = users.find(
-      (u) =>
-        u.username.toLowerCase() === loginInput.trim().toLowerCase() ||
-        u.email.toLowerCase() === loginInput.trim().toLowerCase()
-    );
+    const result = await loginUser(loginInput.trim(), loginPassword);
 
-    if (!found) {
-      setAuthError("Account not found! Please create an account by clicking 'Sign Up' first.");
+    if (!result.success) {
+      setAuthError(result.error || "Account not found or password incorrect.");
       return;
     }
 
-    if (found.password !== loginPassword) {
-      setAuthError("Incorrect password. Please enter the correct password.");
-      return;
-    }
-
-    // Success login
+    const found = result.user;
     setCurrentUser(found);
-    setUserPoints(found.userPoints || 300);
-    setWalletBalance(found.walletBalance || 2500);
+    setUserPoints(found.userPoints || found.user_points || 300);
+    setWalletBalance(found.walletBalance || found.wallet_balance || 2500);
     localStorage.setItem("tourister_logged_user", JSON.stringify(found));
     setPage("dashboard");
   };
 
-  const handleRegisterSubmit = (event) => {
+  const handleRegisterSubmit = async (event) => {
     event.preventDefault();
     setAuthError("");
     setAuthSuccess("");
@@ -341,48 +343,29 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem("tourister_users") || "[]");
-    const existing = users.find(
-      (u) =>
-        u.username.toLowerCase() === signupUsername.trim().toLowerCase() ||
-        u.email.toLowerCase() === signupEmail.trim().toLowerCase()
-    );
+    const result = await signupUser(signupUsername.trim(), signupEmail.trim(), signupPassword);
 
-    if (existing) {
-      setAuthError("An account with this username or email already exists! Please Login.");
+    if (!result.success) {
+      setAuthError(result.error || "An account with this username or email already exists!");
       return;
     }
 
-    const newUser = {
-      username: signupUsername.trim(),
-      email: signupEmail.trim(),
-      password: signupPassword,
-      userPoints: 300,
-      walletBalance: 2500,
-    };
-
-    users.push(newUser);
-    localStorage.setItem("tourister_users", JSON.stringify(users));
+    const newUser = result.user;
     localStorage.setItem("tourister_logged_user", JSON.stringify(newUser));
     setCurrentUser(newUser);
     setUserPoints(300);
     setWalletBalance(2500);
 
-    setAuthSuccess(`🎉 Account created successfully! Welcome to Tourister, ${newUser.username}!`);
+    setAuthSuccess(`🎉 Account created in PostgreSQL database! Welcome, ${newUser.username}!`);
     setTimeout(() => {
       setPage("dashboard");
     }, 900);
   };
 
-  const handleUpdatePassword = (newPass) => {
-    const users = JSON.parse(localStorage.getItem("tourister_users") || "[]");
-    const updatedUsers = users.map((u) => {
-      if (u.username === currentUser.username) {
-        return { ...u, password: newPass };
-      }
-      return u;
-    });
-    localStorage.setItem("tourister_users", JSON.stringify(updatedUsers));
+  const handleUpdatePassword = async (newPass) => {
+    if (currentUser?.username) {
+      await updateUserData(currentUser.username, { newPassword: newPass });
+    }
     const updatedUser = { ...currentUser, password: newPass };
     setCurrentUser(updatedUser);
     localStorage.setItem("tourister_logged_user", JSON.stringify(updatedUser));
@@ -706,7 +689,7 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
               </button>
 
               <button className="nav-button" onClick={() => setPage("phrasebook")}>
-                <FaHeadphones style={{ color: "#8b5cf6" }} /> Audio Guide
+                <FaHeadphones style={{ color: "#8b5cf6" }} /> Audio Phrasebook
               </button>
 
               <button
@@ -761,7 +744,7 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
               </p>
               <h1>Where would you like to begin?</h1>
               <p>
-                Plan your journey intelligently, check live crowd density, create custom routes with sacred temples & 200km attractions, explore verified community scam alerts, and discover hidden gems to earn T-Points!
+                Plan your journey easily, check live crowd density, discover sacred temples & attractions within 200km, read community scam alerts, and explore hidden gems to earn T-Points!
               </p>
             </motion.section>
 
@@ -785,7 +768,7 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
                   <span className="feature-number">01</span>
                   <h2>Tourister AI</h2>
                   <p>
-                    Comprehensive trip planning from start to finish: departure trains/flights, hotel tiers, sacred temple timings, scam alerts, and return logistics.
+                    Comprehensive trip planning from start to finish: departure transit options, hotel stays, sacred temple timings, scam alerts, and daily schedule.
                   </p>
                   <button
                     className="feature-action"
@@ -815,7 +798,7 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
                   <span className="feature-number">02</span>
                   <h2>Create My Plan</h2>
                   <p>
-                    Build your complete journey step-by-step: live crowd meters, 200km temple picker, mother-tongue guides, and station auto-transit booking!
+                    Build your complete journey step-by-step: live crowd meters, temple finder, local language guides, and prepaid station transit!
                   </p>
                   <button
                     className="feature-action"
@@ -845,7 +828,7 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
                   <span className="feature-number">03</span>
                   <h2>Travel Community & Scam Shield</h2>
                   <p>
-                    Share experiences, post scam warnings (Araku internet/food issues, pitty scams), and upload stories evaluated in real-time by Tourister AI.
+                    Share authentic travel experiences, post scam warnings, and discover verified travel advice from fellow travelers.
                   </p>
                   <button
                     className="feature-action"
@@ -858,6 +841,99 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
                   </button>
                 </div>
               </motion.div>
+            </section>
+
+            {/* TOURISTER TRAVEL CONCIERGE & PLANNING TOOLS */}
+            <section className="hackathon-innovations-section">
+              <div className="innovation-header">
+                <div>
+                  <span className="innovation-pill">SMART TRAVEL SUITE</span>
+                  <h2>Personalized Travel Planning Tools</h2>
+                </div>
+                <p>Simple, human-crafted tools to calculate trip costs, check peaceful visiting times, and get photo ideas.</p>
+              </div>
+
+              <div className="innovations-grid">
+                {/* 1. TRAVEL SQUAD */}
+                <motion.div
+                  className="innovation-card multi-agent-card"
+                  whileHover={{ y: -6, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setPage("multi-agent")}
+                >
+                  <div className="inno-card-icon" style={{ background: "rgba(99, 102, 241, 0.12)", color: "#6366f1" }}>
+                    <FaUsers />
+                  </div>
+                  <span className="inno-badge">5 Guides in 1</span>
+                  <h3>Travel Experts Squad</h3>
+                  <p>5 specialists (Route, Budget, Food, Photos, Safety) working together to build your perfect trip.</p>
+                  <span className="inno-action-link" style={{ color: "#6366f1" }}>Plan with Squad →</span>
+                </motion.div>
+
+                {/* 2. BUDGET ESTIMATOR */}
+                <motion.div
+                  className="innovation-card budget-card"
+                  whileHover={{ y: -6, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setPage("budget-estimator")}
+                >
+                  <div className="inno-card-icon" style={{ background: "rgba(16, 185, 129, 0.12)", color: "#10b981" }}>
+                    <FaMoneyBillWave />
+                  </div>
+                  <span className="inno-badge">Expense Calculator</span>
+                  <h3>Trip Budget Estimator</h3>
+                  <p>Choose your hotel type, travel days, and number of people to calculate total costs and savings.</p>
+                  <span className="inno-action-link" style={{ color: "#10b981" }}>Estimate Budget →</span>
+                </motion.div>
+
+                {/* 3. CROWD & GEMS RADAR */}
+                <motion.div
+                  className="innovation-card crowd-card"
+                  whileHover={{ y: -6, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setPage("crowd-gems")}
+                >
+                  <div className="inno-card-icon" style={{ background: "rgba(139, 92, 246, 0.12)", color: "#8b5cf6" }}>
+                    <FaGem />
+                  </div>
+                  <span className="inno-badge">Visiting Times & Perks</span>
+                  <h3>Crowd Radar & T-Points</h3>
+                  <p>See peaceful visiting hours from Google data and visit secret spots to earn free VIP lounge passes.</p>
+                  <span className="inno-action-link" style={{ color: "#8b5cf6" }}>Check Visiting Times →</span>
+                </motion.div>
+
+                {/* 4. INFLUENCER STUDIO */}
+                <motion.div
+                  className="innovation-card creator-card"
+                  whileHover={{ y: -6, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setPage("creator-studio")}
+                >
+                  <div className="inno-card-icon" style={{ background: "rgba(236, 72, 153, 0.12)", color: "#ec4899" }}>
+                    <FaCamera />
+                  </div>
+                  <span className="inno-badge">Photo & Reel Ideas</span>
+                  <h3>Photo & Creator Studio</h3>
+                  <p>Best photography spots, golden hour lighting times, Instagram captions, and 15-second reel guides.</p>
+                  <span className="inno-action-link" style={{ color: "#ec4899" }}>Open Studio →</span>
+                </motion.div>
+
+                {/* 5. TRIP DOSSIER */}
+                <motion.div
+                  className="innovation-card dossier-card"
+                  whileHover={{ y: -6, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setPage("trip-dossier")}
+                >
+                  <div className="inno-card-icon" style={{ background: "rgba(59, 130, 246, 0.12)", color: "#3b82f6" }}>
+                    <FaFileAlt />
+                  </div>
+                  <span className="inno-badge">Printable Summary</span>
+                  <h3>Printable Travel Summary</h3>
+                  <p>Create a neat, complete travel plan booklet formatted to download, copy, or print as a PDF.</p>
+                  <span className="inno-action-link" style={{ color: "#3b82f6" }}>Generate Summary →</span>
+                </motion.div>
+              </div>
             </section>
 
             {/* TRAVEL NEWS & SEASONAL ADVISORY CENTER */}
@@ -935,7 +1011,7 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
               ← TOURISTER
             </button>
             <div className="ai-navbar-title">
-              <FaRobot /> TOURISTER AI ASSISTANT
+              <FaRobot /> TOURISTER TRAVEL ASSISTANT
             </div>
             <button className="nav-button" onClick={() => setPage("dashboard")}>
               Dashboard
@@ -945,10 +1021,10 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
           <section className="ai-chat-container">
             <div className="ai-chat-header">
               <div>
-                <p>INTELLIGENT TRAVEL ASSISTANT</p>
-                <h1>Plan your journey with AI</h1>
+                <p>PERSONAL TRAVEL CONCIERGE</p>
+                <h1>Plan your journey with Tourister</h1>
                 <span>
-                  Tell me your destination, budget, number of days and travel interests for an exhaustive end-to-end plan.
+                  Tell me your starting city, destination, budget, and travel days for a complete, friendly trip plan.
                 </span>
               </div>
             </div>
@@ -964,7 +1040,7 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
                   }
                 >
                   <div className="message-label">
-                    {message.role === "user" ? "YOU" : "TOURISTER AI"}
+                    {message.role === "user" ? "YOU" : "TOURISTER"}
                   </div>
                   <div className="message-content">{message.content}</div>
                 </div>
@@ -972,9 +1048,9 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
 
               {aiLoading && (
                 <div className="ai-message assistant-message">
-                  <div className="message-label">TOURISTER AI</div>
+                  <div className="message-label">TOURISTER</div>
                   <div className="message-content">
-                    Generating comprehensive blueprint: departure transit, sacred temples, hotels, scam defense & return logistics...
+                    Planning your trip details, travel options, places to visit, stays, and practical tips...
                   </div>
                 </div>
               )}
@@ -1113,6 +1189,44 @@ Be conversational, comprehensive, intelligent, structured, and helpful.
       ================================= */}
       {page === "advisories" && (
         <SeasonalAdvisories onBack={() => setPage("dashboard")} />
+      )}
+
+      {/* =================================
+          13. MULTI-AGENT AI SQUAD
+      ================================= */}
+      {page === "multi-agent" && (
+        <MultiAgentSquad onBack={() => setPage("dashboard")} />
+      )}
+
+      {/* =================================
+          14. SMART BUDGET ESTIMATOR
+      ================================= */}
+      {page === "budget-estimator" && (
+        <BudgetEstimator onBack={() => setPage("dashboard")} />
+      )}
+
+      {/* =================================
+          15. CROWD RADAR & HIDDEN GEMS
+      ================================= */}
+      {page === "crowd-gems" && (
+        <CrowdGemsRadar
+          onBack={() => setPage("dashboard")}
+          onAddPoints={handleAddPoints}
+        />
+      )}
+
+      {/* =================================
+          16. INFLUENCER & CREATOR STUDIO
+      ================================= */}
+      {page === "creator-studio" && (
+        <InfluencerStudio onBack={() => setPage("dashboard")} />
+      )}
+
+      {/* =================================
+          17. LLM MASTER TRIP DOSSIER
+      ================================= */}
+      {page === "trip-dossier" && (
+        <TripDossierSummary onBack={() => setPage("dashboard")} />
       )}
 
       {/* GLOBAL HIDDEN GEM MODAL */}

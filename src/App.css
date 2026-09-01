@@ -28,31 +28,35 @@ button {
 
 
 /* =================================
-   MAIN TOURISTER PAGE
+   MAIN TOURISTER PAGE WITH DYNAMIC COLOR BACKGROUND
 ================================= */
 
 .tourister-page {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background:
-    radial-gradient(
-      circle at 15% 20%,
-      rgba(255, 112, 176, 0.12),
-      transparent 28%
-    ),
-    radial-gradient(
-      circle at 85% 20%,
-      rgba(92, 134, 255, 0.13),
-      transparent 28%
-    ),
-    linear-gradient(
-      135deg,
-      #ffffff 0%,
-      #f5f7ff 45%,
-      #ffffff 100%
-    );
+  background: linear-gradient(-45deg, #ffffff, #f5f3ff, #ecfeff, #fff1f2, #f8fafc);
+  background-size: 400% 400%;
+  animation: dynamicGradientShift 18s ease infinite;
   color: #171725;
+}
+
+@keyframes dynamicGradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  25% {
+    background-position: 50% 100%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  75% {
+    background-position: 50% 0%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 
@@ -205,7 +209,7 @@ button {
 
 
 /* =================================
-   FLOATING DOTS
+   SUBTLE GLOBAL BACKGROUND DOT GRID & FLOATING ACCENT DOTS
 ================================= */
 
 .global-dots-layer {
@@ -213,6 +217,8 @@ button {
   inset: 0;
   pointer-events: none;
   z-index: 0;
+  background-image: radial-gradient(rgba(148, 163, 184, 0.25) 1.2px, transparent 1.2px);
+  background-size: 28px 28px;
 }
 
 .floating-dot {
@@ -220,7 +226,57 @@ button {
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  opacity: 0.65;
+  filter: blur(0.5px);
+  transition: transform 0.2s ease-out;
+}
+
+.pink-dot {
+  background: radial-gradient(circle at 35% 35%, #f472b6, rgba(244, 114, 182, 0.45));
+  box-shadow: 0 0 24px rgba(244, 114, 182, 0.35);
+}
+
+.blue-dot {
+  background: radial-gradient(circle at 35% 35%, #60a5fa, rgba(96, 165, 250, 0.45));
+  box-shadow: 0 0 24px rgba(96, 165, 250, 0.35);
+}
+
+.yellow-dot {
+  background: radial-gradient(circle at 35% 35%, #fbbf24, rgba(251, 191, 36, 0.45));
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.35);
+}
+
+.cyan-dot {
+  background: radial-gradient(circle at 35% 35%, #22d3ee, rgba(34, 211, 238, 0.45));
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.35);
+}
+
+.purple-dot {
+  background: radial-gradient(circle at 35% 35%, #c084fc, rgba(192, 132, 252, 0.45));
+  box-shadow: 0 0 24px rgba(192, 132, 252, 0.35);
+}
+
+/* RESPONSIVE DECORATIVE DOTS */
+@media (max-width: 1024px) {
+  .floating-dot {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
+@media (max-width: 768px) {
+  .global-dots-layer {
+    background-size: 24px 24px;
+    background-image: radial-gradient(rgba(148, 163, 184, 0.18) 1px, transparent 1px);
+  }
+  .floating-dot {
+    opacity: 0.35;
+    transform: scale(0.65);
+  }
+  /* Hide middle floating dots on small mobile screens to keep view uncluttered */
+  .floating-dot:nth-child(n+7) {
+    display: none;
+  }
 }
 
 /* AUTH MSG ALERTS */
@@ -1910,4 +1966,212 @@ button {
   .ai-input-area button {
     padding: 15px;
   }
+}
+
+/* =========================================
+   HACKATHON INNOVATION SUITE (DASHBOARD)
+========================================= */
+
+.hackathon-innovations-section {
+  margin: 3.5rem 0;
+}
+
+.innovation-header {
+  margin-bottom: 2rem;
+}
+
+.innovation-pill {
+  display: inline-block;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(236, 72, 153, 0.1));
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: #6366f1;
+  padding: 0.35rem 0.9rem;
+  border-radius: 30px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.6rem;
+}
+
+.innovation-header h2 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 0.35rem;
+}
+
+.innovation-header p {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.innovations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.innovation-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(226, 232, 240, 0.9);
+  border-radius: 20px;
+  padding: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.03);
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.innovation-card:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 16px 35px rgba(0, 0, 0, 0.07);
+}
+
+.inno-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  margin-bottom: 1rem;
+}
+
+.inno-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 0.25rem 0.55rem;
+  border-radius: 8px;
+  align-self: flex-start;
+  margin-bottom: 0.65rem;
+}
+
+.innovation-card h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 0.45rem;
+}
+
+.innovation-card p {
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+  flex: 1;
+}
+
+.inno-action-link {
+  font-size: 0.88rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: transform 0.2s ease;
+}
+
+.innovation-card:hover .inno-action-link {
+  transform: translateX(4px);
+}
+
+/* =========================================
+   AI CHAT PDF PROMPT CARD
+========================================= */
+
+.ai-pdf-prompt-card {
+  background: #ffffff;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 18px;
+  padding: 1.25rem 1.5rem;
+  margin: 1rem 0;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.08);
+}
+
+.pdf-prompt-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: #1e3a8a;
+  margin-bottom: 0.35rem;
+}
+
+.ai-pdf-prompt-card p {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 1rem;
+}
+
+.pdf-prompt-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pdf-yes-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pdf-yes-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+}
+
+.pdf-copy-btn {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pdf-copy-btn:hover {
+  background: #e2e8f0;
+}
+
+/* =========================================
+   DYNAMIC COLOR CHANGING BACKGROUND FOR ALL PAGES
+========================================= */
+
+.tourister-page,
+.dashboard-page,
+.ai-page,
+.create-plan-page,
+.community-page,
+.wallet-page,
+.profile-page,
+.multi-agent-page,
+.budget-page,
+.radar-page,
+.creator-page,
+.dossier-page,
+.advisories-page,
+.fasttrack-page,
+.sos-page,
+.phrasebook-page {
+  position: relative;
+  min-height: 100vh;
+  background: linear-gradient(-45deg, #ffffff, #f5f3ff, #ecfeff, #fff1f2, #f8fafc) !important;
+  background-size: 400% 400% !important;
+  animation: dynamicGradientShift 18s ease infinite !important;
 }

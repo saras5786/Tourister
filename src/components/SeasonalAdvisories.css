@@ -159,6 +159,134 @@
   font-weight: 800;
 }
 
+.advisory-hero p {
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 750px;
+  margin: 0 auto 24px;
+}
+
+/* LIVE NEWS SEARCH & REFRESH BAR */
+.live-news-search-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  max-width: 700px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+
+.live-search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 30px;
+  padding: 8px 18px;
+  flex: 1;
+  min-width: 280px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.live-search-input-wrap:focus-within {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.search-globe-icon {
+  color: #6366f1;
+  font-size: 16px;
+}
+
+.live-search-input-wrap input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.refresh-live-feed-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  color: white;
+  border: none;
+  padding: 11px 22px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.25);
+  transition: all 0.2s ease;
+}
+
+.refresh-live-feed-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+}
+
+.refresh-live-feed-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spin-icon {
+  animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.news-loading-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  padding: 14px 20px;
+  margin-bottom: 24px;
+}
+
+.news-loading-banner strong {
+  display: block;
+  font-size: 13px;
+  color: #166534;
+}
+
+.news-loading-banner p {
+  font-size: 12px;
+  color: #15803d;
+  margin: 2px 0 0;
+}
+
+.card-top-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.news-timestamp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
 .banner-content p {
   font-size: 13px;
   line-height: 1.6;

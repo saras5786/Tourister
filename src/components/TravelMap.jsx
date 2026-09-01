@@ -4,26 +4,42 @@ import {
   FaMapPin,
   FaCompass,
   FaDirections,
-  FaExpandAlt,
   FaLayerGroup,
+  FaMapMarkerAlt,
 } from "react-icons/fa";
 import "./TravelMap.css";
 
 function TravelMap({
   destinationName = "Kakinada",
-  coordinates = { lat: 16.9891, lng: 82.2475 },
+  sourceName = "Hyderabad",
+  sourceCoordinates = { lat: 17.385, lng: 78.4867 },
+  destinationCoordinates = { lat: 16.9891, lng: 82.2475 },
   touristPlaces = [],
-  source = "Hyderabad",
 }) {
   const [mapType, setMapType] = useState("m"); // 'm' (roadmap) or 'k' (satellite)
-  const [selectedPin, setSelectedPin] = useState(null);
-  const [zoomLevel] = useState(13);
+  const [activeTarget, setActiveTarget] = useState("dest"); // 'source' | 'dest' | placeId
+  const [selectedPlace, setSelectedPlace] = useState(null);
 
-  const activeLat = selectedPin ? selectedPin.lat : coordinates.lat;
-  const activeLng = selectedPin ? selectedPin.lng : coordinates.lng;
+  let activeLat = destinationCoordinates.lat;
+  let activeLng = destinationCoordinates.lng;
+  let zoomLevel = 13;
 
-  // Embedded Interactive OpenStreetMap / Google Map URL
+  if (activeTarget === "source") {
+    activeLat = sourceCoordinates.lat;
+    activeLng = sourceCoordinates.lng;
+  } else if (activeTarget === "dest") {
+    activeLat = destinationCoordinates.lat;
+    activeLng = destinationCoordinates.lng;
+  } else if (selectedPlace) {
+    activeLat = selectedPlace.lat;
+    activeLng = selectedPlace.lng;
+    zoomLevel = 15;
+  }
+
+  // Real-time map embed with accurate coordinates
   const mapEmbedUrl = `https://maps.google.com/maps?q=${activeLat},${activeLng}&z=${zoomLevel}&t=${mapType}&output=embed`;
+
+  const googleDirectionsUrl = `https://www.google.com/maps/dir/?api=1&origin=${sourceCoordinates.lat},${sourceCoordinates.lng}&destination=${destinationCoordinates.lat},${destinationCoordinates.lng}`;
 
   return (
     <div className="travel-map-container">
@@ -33,58 +49,82 @@ function TravelMap({
             <FaMapMarkedAlt />
           </div>
           <div>
-            <h3>Interactive Satellite & Route Map: {destinationName}</h3>
-            <p>Live coordinates: {activeLat.toFixed(4)}° N, {activeLng.toFixed(4)}° E · {source} → {destinationName}</p>
+            <h3>Interactive Satellite & Real Coordinate Map</h3>
+            <p>
+              Target: {activeLat?.toFixed(4)}° N, {activeLng?.toFixed(4)}° E · {sourceName} ➔ {destinationName}
+            </p>
           </div>
         </div>
 
         <div className="map-controls">
           <button
+            type="button"
             className={`map-toggle-btn ${mapType === "m" ? "active" : ""}`}
             onClick={() => setMapType("m")}
           >
             <FaLayerGroup /> Street Map
           </button>
           <button
+            type="button"
             className={`map-toggle-btn ${mapType === "k" ? "active" : ""}`}
             onClick={() => setMapType("k")}
           >
             <FaCompass /> Satellite
           </button>
           <a
-            href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(source)}&destination=${encodeURIComponent(destinationName)}`}
+            href={googleDirectionsUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="map-dir-btn"
           >
-            <FaDirections /> Open in Google Maps ↗
+            <FaDirections /> Live Directions ↗
           </a>
         </div>
       </div>
 
-      {/* ATTRACTION QUICK PINS BAR */}
-      {touristPlaces && touristPlaces.length > 0 && (
-        <div className="map-pins-bar">
-          <span className="pins-label">
-            <FaMapPin /> PLACES ON MAP:
-          </span>
-          <button
-            className={`place-pin-chip ${!selectedPin ? "active" : ""}`}
-            onClick={() => setSelectedPin(null)}
-          >
-            📍 {destinationName} (City Center)
-          </button>
-          {touristPlaces.map((place) => (
+      {/* QUICK LOCATION & ATTRACTION PIN SELECTOR */}
+      <div className="map-pins-bar">
+        <span className="pins-label">
+          <FaMapPin /> PINS:
+        </span>
+        <button
+          type="button"
+          className={`place-pin-chip ${activeTarget === "source" ? "active" : ""}`}
+          onClick={() => {
+            setActiveTarget("source");
+            setSelectedPlace(null);
+          }}
+        >
+          <FaMapMarkerAlt className="pin-icon blue" /> Origin: {sourceName}
+        </button>
+        <button
+          type="button"
+          className={`place-pin-chip ${activeTarget === "dest" ? "active" : ""}`}
+          onClick={() => {
+            setActiveTarget("dest");
+            setSelectedPlace(null);
+          }}
+        >
+          <FaMapMarkerAlt className="pin-icon red" /> Destination: {destinationName}
+        </button>
+
+        {touristPlaces &&
+          touristPlaces.slice(0, 6).map((place) => (
             <button
               key={place.id}
-              className={`place-pin-chip ${selectedPin?.id === place.id ? "active" : ""}`}
-              onClick={() => setSelectedPin(place)}
+              type="button"
+              className={`place-pin-chip ${
+                selectedPlace?.id === place.id ? "active" : ""
+              }`}
+              onClick={() => {
+                setActiveTarget(place.id);
+                setSelectedPlace(place);
+              }}
             >
-              🏛️ {place.name.split(" ")[0]} {place.name.split(" ")[1] || ""} ({place.distanceKm}km)
+              <FaMapMarkerAlt className="pin-icon orange" /> {place.name.split(" ")[0]} {place.name.split(" ")[1] || ""}
             </button>
           ))}
-        </div>
-      )}
+      </div>
 
       {/* MAP EMBED IFRAME */}
       <div className="map-iframe-wrap">
@@ -98,15 +138,6 @@ function TravelMap({
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
         />
-        <div className="map-live-tag">
-          <span className="live-pulsing-dot" /> LIVE GPS MAPPED
-        </div>
-        <button
-          className="map-expand-btn"
-          onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedPin?.name || destinationName)}`, "_blank")}
-        >
-          <FaExpandAlt /> Fullscreen
-        </button>
       </div>
     </div>
   );

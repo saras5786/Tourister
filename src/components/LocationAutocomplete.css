@@ -1,0 +1,366 @@
+/* =======================================================
+   TOURISTER LOCATION AUTOCOMPLETE COMPONENT (RAPIDO / UBER STYLE)
+   ======================================================= */
+
+.location-autocomplete-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* LABEL & SUBTEXT ROW */
+.autocomplete-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.label-badge {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.origin-badge {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.dest-badge {
+  background: #fdf2f8;
+  color: #be185d;
+  border: 1px solid #fbcfe8;
+}
+
+.label-subtext {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* INPUT BOX */
+.autocomplete-input-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 10px 14px;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  position: relative;
+}
+
+.autocomplete-input-box:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.autocomplete-input-box.focused {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3.5px rgba(37, 99, 235, 0.12), 0 6px 20px rgba(37, 99, 235, 0.06);
+  background: #ffffff;
+}
+
+/* LEADING PIN ICON */
+.leading-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 14px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.origin-pin {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.dest-pin {
+  background: #fce7f3;
+  color: #db2777;
+}
+
+.autocomplete-input-box.focused .leading-pin {
+  transform: scale(1.08);
+}
+
+/* INPUT FIELD */
+.real-autocomplete-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  padding: 0;
+  margin: 0;
+}
+
+.real-autocomplete-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+  font-size: 13.5px;
+}
+
+/* TRAILING ACTIONS */
+.trailing-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.clear-query-btn {
+  background: #f1f5f9;
+  border: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 10px;
+  transition: all 0.15s ease;
+}
+
+.clear-query-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: scale(1.08);
+}
+
+.search-hint-icon {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.loading-spinner {
+  color: #2563eb;
+  animation: spin 0.85s linear infinite;
+  font-size: 14px;
+}
+
+.loading-spinner.inline {
+  font-size: 13px;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================
+   AUTOCOMPLETE RESULTS DROPDOWN
+   ========================================= */
+
+.autocomplete-results-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 16px;
+  box-shadow: 0 16px 40px -8px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  z-index: 1000;
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  animation: slideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 6px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* DROPDOWN STATUS & EMPTY ROWS */
+.dropdown-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.dropdown-empty-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 14px;
+}
+
+.empty-icon {
+  font-size: 22px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.empty-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.empty-text strong {
+  font-size: 13px;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.empty-text span {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+/* SUGGESTIONS LIST */
+.suggestions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.suggestion-item:hover,
+.suggestion-item.highlighted {
+  background: #f8fafc;
+}
+
+.suggestion-item.selected {
+  background: #eff6ff;
+}
+
+.suggestion-item.selected::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3.5px;
+  background: #2563eb;
+  border-radius: 4px;
+}
+
+/* ITEM ICONS */
+.item-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}
+
+.place-icon {
+  font-size: 13px;
+}
+
+.place-icon.pin {
+  color: #64748b;
+}
+
+.place-icon.city {
+  color: #2563eb;
+}
+
+.place-icon.airport {
+  color: #7c3aed;
+}
+
+.place-icon.train {
+  color: #ea580c;
+}
+
+/* ITEM DETAILS */
+.item-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+}
+
+.item-main-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-secondary-address {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-coords-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+  .autocomplete-input-box {
+    padding: 8px 12px;
+  }
+  .item-coords-badge {
+    display: none;
+  }
+}

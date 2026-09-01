@@ -357,7 +357,7 @@ function UserProfile({
             >
               <div className="section-head">
                 <h2>Saved Journey Itineraries</h2>
-                <p>Access your saved trip plans generated with Create My Plan and Tourister AI.</p>
+                <p>Access your saved trip plans generated with Create My Plan and Tourister Assistant.</p>
               </div>
 
               {savedPlans && savedPlans.length > 0 ? (
