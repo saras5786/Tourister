@@ -235,21 +235,44 @@ Give 3 concise bullet points:
     }, 150);
   };
 
+  const isSamePlace =
+    routeSummary?.isLocal ||
+    sourceLocation?.name?.toLowerCase() === destinationLocation?.name?.toLowerCase();
+
+  // Smart Transit Classification (Flight vs Train vs Road vs Local)
+  const isFlightTrip =
+    transport === "Flight" ||
+    (routeSummary && !routeSummary.roadRouteAvailable && !routeSummary.isLocal) ||
+    (routeSummary && routeSummary.airDistanceKm > 1500);
+
+  const chosenAttractions = touristPlaces.filter((p) =>
+    selectedPlaceIds.includes(p.id)
+  );
+
+  const destinationCommunityPosts = initialCommunityPosts.filter(
+    (p) => p.destination.toLowerCase() === destination.toLowerCase()
+  );
+
   const handlePrintPDF = () => {
-    exportTripPlanToPDF({
-      source: sourceLocation.name,
-      destination: destinationLocation.name,
-      durationDays: Number(durationDays),
-      travelers: Number(travelers),
-      budget,
-      transport,
-      routeSummary,
-      chosenAttractions,
-      selectedGuide,
-      hotelRecommendation,
-      isFlightTrip,
-      username: username || "Tourister Traveler",
-    });
+    try {
+      exportTripPlanToPDF({
+        source: sourceLocation?.name || "Starting Point",
+        destination: destinationLocation?.name || "Destination",
+        durationDays: Number(durationDays) || 3,
+        travelers: Number(travelers) || 2,
+        budget: budget || "Moderate",
+        transport: transport || "Train",
+        routeSummary: routeSummary || null,
+        chosenAttractions: chosenAttractions || [],
+        selectedGuideId: selectedGuideId || "auto",
+        autoTransitEnabled: !!autoTransitEnabled,
+        isFlightTrip: !!isFlightTrip,
+        username: username || "Tourister Traveler",
+      });
+    } catch (err) {
+      console.error("PDF export error:", err);
+      window.print();
+    }
   };
 
   const handleSaveItinerary = async () => {
@@ -274,24 +297,6 @@ Give 3 concise bullet points:
     setPlanSaved(true);
     alert(`🎉 Itinerary for ${destination} saved to PostgreSQL Database & Profile vault!`);
   };
-
-  const isSamePlace =
-    routeSummary?.isLocal ||
-    sourceLocation?.name?.toLowerCase() === destinationLocation?.name?.toLowerCase();
-
-  // Smart Transit Classification (Flight vs Train vs Road vs Local)
-  const isFlightTrip =
-    transport === "Flight" ||
-    (routeSummary && !routeSummary.roadRouteAvailable && !routeSummary.isLocal) ||
-    (routeSummary && routeSummary.airDistanceKm > 1500);
-
-  const chosenAttractions = touristPlaces.filter((p) =>
-    selectedPlaceIds.includes(p.id)
-  );
-
-  const destinationCommunityPosts = initialCommunityPosts.filter(
-    (p) => p.destination.toLowerCase() === destination.toLowerCase()
-  );
 
   return (
     <main className="create-plan-page light-theme">

@@ -596,9 +596,13 @@ Whenever the user asks about a trip or destination, always structure your answer
 
             {authMode === "login" && (
               <form className="auth-form" onSubmit={handleLoginSubmit} autoComplete="off">
+                {/* Browser Autofill Trap */}
+                <input type="text" style={{ display: "none" }} tabIndex={-1} aria-hidden="true" />
+                <input type="password" style={{ display: "none" }} tabIndex={-1} aria-hidden="true" />
+
                 <input
                   type="text"
-                  name="tourister_auth_user"
+                  name="tourister_auth_user_field"
                   autoComplete="off"
                   placeholder="Username or Email"
                   value={loginInput}
@@ -607,7 +611,7 @@ Whenever the user asks about a trip or destination, always structure your answer
                 />
                 <input
                   type="password"
-                  name="tourister_auth_pass"
+                  name="tourister_auth_pass_field"
                   autoComplete="new-password"
                   placeholder="Password"
                   value={loginPassword}
@@ -621,9 +625,15 @@ Whenever the user asks about a trip or destination, always structure your answer
             )}
 
             {authMode === "signup" && (
-              <form className="auth-form" onSubmit={handleRegisterSubmit}>
+              <form className="auth-form" onSubmit={handleRegisterSubmit} autoComplete="off">
+                {/* Browser Autofill Trap */}
+                <input type="text" style={{ display: "none" }} tabIndex={-1} aria-hidden="true" />
+                <input type="password" style={{ display: "none" }} tabIndex={-1} aria-hidden="true" />
+
                 <input
                   type="text"
+                  name="tourister_signup_handle"
+                  autoComplete="off"
                   placeholder="Username (What should we call you?)"
                   value={signupUsername}
                   onChange={(e) => setSignupUsername(e.target.value)}
@@ -631,6 +641,8 @@ Whenever the user asks about a trip or destination, always structure your answer
                 />
                 <input
                   type="email"
+                  name="tourister_signup_mail"
+                  autoComplete="off"
                   placeholder="Email Address"
                   value={signupEmail}
                   onChange={(e) => setSignupEmail(e.target.value)}
@@ -638,6 +650,8 @@ Whenever the user asks about a trip or destination, always structure your answer
                 />
                 <input
                   type="password"
+                  name="tourister_signup_pass_a"
+                  autoComplete="new-password"
                   placeholder="Create Password (min 6 characters)"
                   value={signupPassword}
                   onChange={(e) => setSignupPassword(e.target.value)}
@@ -645,6 +659,8 @@ Whenever the user asks about a trip or destination, always structure your answer
                 />
                 <input
                   type="password"
+                  name="tourister_signup_pass_b"
+                  autoComplete="new-password"
                   placeholder="Confirm Password"
                   value={signupConfirmPassword}
                   onChange={(e) => setSignupConfirmPassword(e.target.value)}

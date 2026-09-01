@@ -388,17 +388,37 @@ export function exportTripPlanToPDF(planData) {
 </html>
   `;
 
-  doc.open();
-  doc.write(htmlContent);
-  doc.close();
+  try {
+    doc.open();
+    doc.write(htmlContent);
+    doc.close();
 
-  setTimeout(() => {
-    printWindow.contentWindow.focus();
-    printWindow.contentWindow.print();
-    setTimeout(() => {
-      document.body.removeChild(printWindow);
-    }, 2000);
-  }, 350);
+    const doPrint = () => {
+      try {
+        printWindow.contentWindow.focus();
+        printWindow.contentWindow.print();
+      } catch (err) {
+        console.warn("Iframe print notice, using popup fallback:", err);
+        const pop = window.open("", "_blank");
+        if (pop) {
+          pop.document.write(htmlContent);
+          pop.document.close();
+          pop.focus();
+          pop.print();
+        }
+      }
+      setTimeout(() => {
+        if (document.body.contains(printWindow)) {
+          document.body.removeChild(printWindow);
+        }
+      }, 5000);
+    };
+
+    setTimeout(doPrint, 350);
+  } catch (e) {
+    console.error("PDF generation fallback:", e);
+    window.print();
+  }
 }
 
 /**
