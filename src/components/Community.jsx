@@ -102,7 +102,7 @@ function Community({ onBack, onOpenGem, username = "Tourister" }) {
 
     const interval = setInterval(() => {
       loadCommunityPosts(false);
-    }, 20000);
+    }, 12000);
 
     return () => {
       window.removeEventListener("focus", handleFocus);
@@ -303,6 +303,19 @@ STORY: [2 sentences with real details]`;
     }
   };
 
+  // Get currently active logged-in user name
+  const getActiveAuthorName = () => {
+    if (username && username !== "Tourister") return username;
+    try {
+      const savedUser = localStorage.getItem("tourister_logged_user");
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        if (u?.username) return u.username;
+      }
+    } catch (e) {}
+    return username || "sarath5786";
+  };
+
   const handlePublishPost = async (e) => {
     e.preventDefault();
     if (!formTitle.trim() || !formContent.trim()) return;
@@ -314,10 +327,11 @@ STORY: [2 sentences with real details]`;
       category: formCategory,
     });
 
+    const activeAuthor = getActiveAuthorName();
     const newPost = {
-      id: `user-post-${Date.now()}`,
-      author: username || "Verified Explorer",
-      avatar: (username || "VE").substring(0, 2).toUpperCase(),
+      id: `user-post-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      author: activeAuthor,
+      avatar: activeAuthor.substring(0, 2).toUpperCase(),
       authorTier: "Active Contributor",
       destination: formDestination,
       category: formCategory,
@@ -347,22 +361,27 @@ STORY: [2 sentences with real details]`;
 
     try {
       await createCommunityPost(newPost);
-      setScoutNotif("🎉 Your travel post has been published and synced with all travelers!");
-      setTimeout(() => setScoutNotif(""), 5000);
+      setScoutNotif(`🎉 Your post was published by @${activeAuthor} and synced with all travelers!`);
+      setTimeout(() => setScoutNotif(""), 6000);
+      loadCommunityPosts(false);
     } catch (err) {
       console.warn("Post sync error:", err);
     }
   };
 
   const filteredPosts = posts.filter((post) => {
+    if (!post) return false;
     const matchesCategory =
       selectedCategory === "All" || post.category === selectedCategory;
-    const q = searchQuery.toLowerCase();
+    const q = (searchQuery || "").toLowerCase().trim();
+    if (!q) return matchesCategory;
+
     const matchesSearch =
-      post.title.toLowerCase().includes(q) ||
-      post.content.toLowerCase().includes(q) ||
-      post.destination.toLowerCase().includes(q) ||
-      post.location.toLowerCase().includes(q);
+      (post.title || "").toLowerCase().includes(q) ||
+      (post.content || "").toLowerCase().includes(q) ||
+      (post.destination || "").toLowerCase().includes(q) ||
+      (post.location || "").toLowerCase().includes(q) ||
+      (post.author || "").toLowerCase().includes(q);
     return matchesCategory && matchesSearch;
   });
 

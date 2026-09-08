@@ -1,7 +1,8 @@
-// Tourister Unified Database Service (Vite Dev Engine, Hybrid Backend & Cross-Device Cloud Sync)
+// Tourister Unified Database Service (Vite Dev Engine, Hybrid Backend & Real Global Cloud Sync)
 
-const CLOUD_SYNC_URL = "https://api.restful-api.dev/objects";
-const CLOUD_NAMESPACE = "tourister_cloud_vault_v1";
+const CLOUD_COMMUNITY_BIN = "https://extendsclass.com/api/json-storage/bin/eafaacb";
+const CLOUD_COMMUNITY_BIN_BACKUP = "https://extendsclass.com/api/json-storage/bin/afdfaec";
+const CLOUD_USERS_BIN = "https://extendsclass.com/api/json-storage/bin/cdcbecb";
 
 function getApiBase() {
   if (typeof window !== "undefined") {
@@ -12,29 +13,31 @@ function getApiBase() {
   return "http://localhost:5000/api";
 }
 
-// Helper: Cloud Registry Sync
+// Helper: Cloud Users Sync (Synchronizes with universal user vault)
 async function syncUserToCloud(user) {
   try {
-    const payload = {
-      name: `${CLOUD_NAMESPACE}_${user.username.toLowerCase()}`,
-      data: {
-        username: user.username,
-        email: user.email,
-        password: user.password || user.password_hash,
-        userPoints: user.userPoints || user.user_points || 300,
-        walletBalance: user.walletBalance || user.wallet_balance || 2500,
-        updatedAt: new Date().toISOString(),
-      },
-    };
-
-    await fetch(CLOUD_SYNC_URL, {
-      method: "POST",
+    const res = await fetch(`${CLOUD_USERS_BIN}?_t=${Date.now()}`, { signal: AbortSignal.timeout(3500) });
+    let users = [];
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.users)) users = data.users;
+    }
+    const idx = users.findIndex(
+      (u) => u.username?.toLowerCase() === user.username?.toLowerCase()
+    );
+    if (idx !== -1) {
+      users[idx] = { ...users[idx], ...user };
+    } else {
+      users.push(user);
+    }
+    await fetch(CLOUD_USERS_BIN, {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(3000),
+      body: JSON.stringify({ users, lastUpdated: new Date().toISOString() }),
+      signal: AbortSignal.timeout(3500),
     });
   } catch (err) {
-    // Cloud sync notice (silent fallback)
+    // Cloud sync fallback
   }
 }
 
@@ -79,40 +82,46 @@ export async function loginUser(username, password) {
     return { success: true, user: matched, source: "DeviceStorage" };
   }
 
-  // C. Fallback to Global Cloud Object Registry (Multi-Device Bridge)
+  // C. Fallback to Global Cloud Users Vault (Works across all devices and on GitHub Pages)
   try {
-    // Check if user was registered on another device via cloud registry
-    const cloudName = `${CLOUD_NAMESPACE}_${username.toLowerCase()}`;
-    // Query recently synced objects or check cloud
-    const cloudRes = await fetch(`${CLOUD_SYNC_URL}`, {
+    const cloudRes = await fetch(`${CLOUD_USERS_BIN}?_t=${Date.now()}`, {
       signal: AbortSignal.timeout(3500),
     });
     if (cloudRes.ok) {
-      const objects = await cloudRes.json();
-      if (Array.isArray(objects)) {
-        const foundCloud = objects.find(
-          (item) =>
-            item.name === cloudName &&
-            (item.data?.password === password || item.data?.password_hash === password)
+      const data = await cloudRes.json();
+      if (Array.isArray(data.users)) {
+        const foundCloud = data.users.find(
+          (u) =>
+            (u.username?.toLowerCase() === username.toLowerCase() ||
+              (u.email && u.email.toLowerCase() === username.toLowerCase())) &&
+            (u.password === password || u.password_hash === password)
         );
-        if (foundCloud && foundCloud.data) {
-          const userObj = {
-            username: foundCloud.data.username,
-            email: foundCloud.data.email,
-            password: foundCloud.data.password,
-            userPoints: foundCloud.data.userPoints || 300,
-            walletBalance: foundCloud.data.walletBalance || 2500,
-          };
-          saveUserToLocalStorage(userObj);
-          return { success: true, user: userObj, source: "CloudSync" };
+        if (foundCloud) {
+          saveUserToLocalStorage(foundCloud);
+          return { success: true, user: foundCloud, source: "CloudVault" };
         }
       }
     }
   } catch (e) {
-    // Cloud check timeout
+    // Cloud check notice
   }
 
-  // Built-in demo accounts fallback
+  // Built-in verified accounts fallback
+  if (
+    (username.toLowerCase() === "sarath5786" || username.toLowerCase() === "sarath5786@gmail.com") &&
+    password === "password123"
+  ) {
+    const demoUser = {
+      username: "sarath5786",
+      email: "sarath5786@gmail.com",
+      password: "password123",
+      userPoints: 500,
+      walletBalance: 3000,
+    };
+    saveUserToLocalStorage(demoUser);
+    return { success: true, user: demoUser, source: "DefaultAccount" };
+  }
+
   if (
     (username.toLowerCase() === "saraschandra" || username.toLowerCase() === "saraschandra5786@gmail.com") &&
     password === "password123"
@@ -125,7 +134,7 @@ export async function loginUser(username, password) {
       walletBalance: 2500,
     };
     saveUserToLocalStorage(demoUser);
-    return { success: true, user: demoUser, source: "DemoAccount" };
+    return { success: true, user: demoUser, source: "DefaultAccount" };
   }
 
   return { success: false, error: "Invalid username or password" };
@@ -280,60 +289,65 @@ export async function saveTripPlan(planData) {
   return { success: true, plan: planData, source: "LocalDB" };
 }
 
-// 5. Community Posts: Fetch from Server & Cloud Sync
+// 5. Community Posts: Fetch from Server & Cloud Storage
 export async function fetchCommunityPosts() {
   const apiBase = getApiBase();
-  let serverPosts = [];
+  const postMap = new Map();
 
-  // A. Try Local / Network Server via Vite or Express
+  // A. First load from Local Storage Cache (instant display)
   try {
-    const res = await fetch(`${apiBase}/posts`, {
-      signal: AbortSignal.timeout(3000),
+    const localRaw = localStorage.getItem("tourister_community_posts");
+    if (localRaw) {
+      const localPosts = JSON.parse(localRaw);
+      if (Array.isArray(localPosts)) {
+        localPosts.forEach((p) => p && p.id && postMap.set(p.id, p));
+      }
+    }
+  } catch (e) {}
+
+  // B. Fetch from Real Global Cloud Storage (Primary for cross-user & GitHub Pages)
+  const binUrls = [CLOUD_COMMUNITY_BIN, CLOUD_COMMUNITY_BIN_BACKUP];
+  for (const binUrl of binUrls) {
+    try {
+      const res = await fetch(`${binUrl}?_t=${Date.now()}`, {
+        signal: AbortSignal.timeout(4500),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.posts) && data.posts.length > 0) {
+          data.posts.forEach((p) => p && p.id && postMap.set(p.id, p));
+          break; // Primary succeeded
+        }
+      }
+    } catch (err) {
+      console.warn("Cloud bin fetch notice:", err.message);
+    }
+  }
+
+  // C. Try Local / Network Server via Vite or Express (if running locally)
+  try {
+    const res = await fetch(`${apiBase}/posts?_t=${Date.now()}`, {
+      signal: AbortSignal.timeout(2000),
     });
     if (res.ok) {
       const data = await res.json();
       if (data.success && Array.isArray(data.posts)) {
-        serverPosts = data.posts;
+        data.posts.forEach((p) => p && p.id && postMap.set(p.id, p));
       }
     }
   } catch (e) {
-    // Server fetch notice
+    // Local server offline or on static hosting
   }
-
-  // B. Cross-Device Cloud Sync Registry (so posts appear across different networks/devices too)
-  let cloudPosts = [];
-  try {
-    const cloudRes = await fetch(CLOUD_SYNC_URL, {
-      signal: AbortSignal.timeout(3000),
-    });
-    if (cloudRes.ok) {
-      const objects = await cloudRes.json();
-      if (Array.isArray(objects)) {
-        cloudPosts = objects
-          .filter((item) => item.name && item.name.startsWith(`${CLOUD_NAMESPACE}_post_`))
-          .map((item) => item.data)
-          .filter(Boolean);
-      }
-    }
-  } catch (e) {
-    // Cloud fetch notice
-  }
-
-  // C. Merge server, cloud, and local posts (Server & Cloud take authoritative precedence)
-  const localRaw = localStorage.getItem("tourister_community_posts");
-  const localPosts = localRaw ? JSON.parse(localRaw) : [];
-
-  const postMap = new Map();
-  // 1. Local cached posts first
-  localPosts.forEach((p) => p && p.id && postMap.set(p.id, p));
-  // 2. Cloud posts override local cache
-  cloudPosts.forEach((p) => p && p.id && postMap.set(p.id, p));
-  // 3. Server posts take authoritative precedence
-  serverPosts.forEach((p) => p && p.id && postMap.set(p.id, p));
 
   const getPostTime = (p) => {
-    if (p.createdAt) return new Date(p.createdAt).getTime();
-    if (p.created_at) return new Date(p.created_at).getTime();
+    if (p.createdAt) {
+      const t = new Date(p.createdAt).getTime();
+      if (!isNaN(t)) return t;
+    }
+    if (p.created_at) {
+      const t = new Date(p.created_at).getTime();
+      if (!isNaN(t)) return t;
+    }
     const match = String(p.id).match(/\d{10,}/);
     if (match) return parseInt(match[0], 10);
     return 0;
@@ -343,53 +357,70 @@ export async function fetchCommunityPosts() {
     (a, b) => getPostTime(b) - getPostTime(a)
   );
 
-  localStorage.setItem("tourister_community_posts", JSON.stringify(merged));
+  try {
+    localStorage.setItem("tourister_community_posts", JSON.stringify(merged));
+  } catch (e) {}
+
   return merged;
 }
 
-// 6. Community Posts: Create & Sync for all users
+// 6. Community Posts: Create & Sync across all devices and accounts globally
 export async function createCommunityPost(postData) {
   const apiBase = getApiBase();
-  let savedPost = { ...postData };
+  const savedPost = {
+    ...postData,
+    id: postData.id || `user-post-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    createdAt: postData.createdAt || new Date().toISOString(),
+  };
 
-  // A. Save to Server Database via Vite / Express
+  // A. Save to Local Storage Cache immediately
   try {
-    const res = await fetch(`${apiBase}/posts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(postData),
-      signal: AbortSignal.timeout(3000),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && data.post) {
-        savedPost = data.post;
-      }
+    const localRaw = localStorage.getItem("tourister_community_posts");
+    const localPosts = localRaw ? JSON.parse(localRaw) : [];
+    const updatedLocal = [savedPost, ...localPosts.filter((p) => p.id !== savedPost.id)];
+    localStorage.setItem("tourister_community_posts", JSON.stringify(updatedLocal));
+  } catch (e) {}
+
+  // B. Save to Real Global Cloud Storage (Primary for GitHub Pages and cross-account access)
+  const binUrls = [CLOUD_COMMUNITY_BIN, CLOUD_COMMUNITY_BIN_BACKUP];
+  for (const binUrl of binUrls) {
+    try {
+      let existingPosts = [];
+      try {
+        const getRes = await fetch(`${binUrl}?_t=${Date.now()}`, {
+          signal: AbortSignal.timeout(3500),
+        });
+        if (getRes.ok) {
+          const json = await getRes.json();
+          if (Array.isArray(json.posts)) {
+            existingPosts = json.posts;
+          }
+        }
+      } catch (e) {}
+
+      const updatedPosts = [savedPost, ...existingPosts.filter((p) => p.id !== savedPost.id)];
+      await fetch(binUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ posts: updatedPosts, lastUpdated: new Date().toISOString() }),
+        signal: AbortSignal.timeout(4000),
+      });
+    } catch (err) {
+      console.warn("Global cloud save notice:", err.message);
     }
-  } catch (e) {
-    console.info("Server post save offline, syncing to cloud and local:", e.message);
   }
 
-  // B. Sync to Cloud Object Registry so other users on other devices see it
+  // C. Save to Local / Network Server via Vite or Express (if running locally)
   try {
-    await fetch(CLOUD_SYNC_URL, {
+    await fetch(`${apiBase}/posts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: `${CLOUD_NAMESPACE}_post_${savedPost.id}`,
-        data: savedPost,
-      }),
-      signal: AbortSignal.timeout(3000),
+      body: JSON.stringify(savedPost),
+      signal: AbortSignal.timeout(2000),
     });
-  } catch (e) {
-    // Cloud sync notice
+  } catch (serverErr) {
+    // Server offline or static host
   }
-
-  // C. Update Local Storage Cache
-  const localRaw = localStorage.getItem("tourister_community_posts");
-  const localPosts = localRaw ? JSON.parse(localRaw) : [];
-  const updated = [savedPost, ...localPosts.filter((p) => p.id !== savedPost.id)];
-  localStorage.setItem("tourister_community_posts", JSON.stringify(updated));
 
   return { success: true, post: savedPost };
 }
