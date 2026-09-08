@@ -77,6 +77,12 @@
   border: 1px solid #bbf7d0;
 }
 
+.add-bk-btn.airbnb {
+  background: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+}
+
 .add-bk-btn:hover {
   transform: translateY(-2px);
   filter: brightness(0.96);
@@ -123,6 +129,7 @@
 .booking-card.train-card { border-left: 4px solid #3b82f6; }
 .booking-card.bus-card { border-left: 4px solid #ec4899; }
 .booking-card.hotel-card { border-left: 4px solid #10b981; }
+.booking-card.airbnb-card { border-left: 4px solid #ff385c; }
 
 .card-top-type {
   display: flex;
@@ -145,6 +152,8 @@
 .type-badge.train { background: #eff6ff; color: #1d4ed8; }
 .type-badge.bus { background: #fdf2f8; color: #db2777; }
 .type-badge.hotel { background: #f0fdf4; color: #15803d; }
+.type-badge.airbnb { background: #fff1f2; color: #e11d48; }
+
 
 .card-action-btns {
   display: flex;

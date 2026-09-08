@@ -15,7 +15,9 @@ import {
   FaTimes,
   FaCheck,
   FaInfoCircle,
+  FaHome,
 } from "react-icons/fa";
+
 import "./BookingManager.css";
 
 const STORAGE_KEY = "tourister_manual_bookings";
@@ -114,6 +116,14 @@ function BookingManager({ destination = "Kakinada", source = "Hyderabad" }) {
       hotelPnr: "",
       hotelRoomType: "Deluxe AC Room",
       hotelAddress: destination,
+      // Airbnb defaults
+      airbnbName: "",
+      airbnbHost: "",
+      airbnbCheckIn: new Date().toISOString().split("T")[0],
+      airbnbCheckOut: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
+      airbnbCode: "",
+      airbnbPropertyType: "Entire Villa / Heritage Homestay",
+      airbnbAddress: destination,
     });
   };
 
@@ -161,7 +171,7 @@ function BookingManager({ destination = "Kakinada", source = "Hyderabad" }) {
         <div>
           <h3>My Saved Personal Trip Bookings</h3>
           <p>
-            Manually save your confirmed flight, train, bus, or hotel tickets for quick access during your journey.
+            Manually save your confirmed flight, train, bus, hotel, or Airbnb reservations for quick access.
           </p>
         </div>
 
@@ -194,8 +204,16 @@ function BookingManager({ destination = "Kakinada", source = "Hyderabad" }) {
           >
             <FaPlus /> <FaHotel /> Add Hotel
           </button>
+          <button
+            type="button"
+            className="add-bk-btn airbnb"
+            onClick={() => openAddModal("airbnb")}
+          >
+            <FaPlus /> <FaHome /> Add Airbnb
+          </button>
         </div>
       </div>
+
 
       <div className="booking-notice-callout">
         <FaInfoCircle />
@@ -352,6 +370,55 @@ function BookingManager({ destination = "Kakinada", source = "Hyderabad" }) {
               );
             }
 
+            // AIRBNB CARD
+            if (b.type === "airbnb") {
+              return (
+                <div key={b.id} className="booking-card airbnb-card">
+                  <div className="card-top-type">
+                    <span className="type-badge airbnb">
+                      <FaHome /> AIRBNB STAY
+                    </span>
+                    <div className="card-action-btns">
+                      <button onClick={() => openEditModal(b)} title="Edit">
+                        <FaEdit />
+                      </button>
+                      <button onClick={() => handleDeleteBooking(b.id)} title="Delete">
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </div>
+
+                  <h4 className="booking-title">{d.airbnbName || "Airbnb Homestay"}</h4>
+
+                  <div className="booking-fields-list">
+                    <div>
+                      <FaCalendarAlt /> Check-in: <strong>{d.airbnbCheckIn}</strong> ➔ Check-out: <strong>{d.airbnbCheckOut}</strong>
+                    </div>
+                    {d.airbnbHost && (
+                      <div>
+                        Host: <strong>{d.airbnbHost}</strong>
+                      </div>
+                    )}
+                    {d.airbnbPropertyType && (
+                      <div>
+                        Type: <strong>{d.airbnbPropertyType}</strong>
+                      </div>
+                    )}
+                    {d.airbnbAddress && (
+                      <div>
+                        <FaMapMarkerAlt /> Location: <strong>{d.airbnbAddress}</strong>
+                      </div>
+                    )}
+                    {d.airbnbCode && (
+                      <div>
+                        <FaTicketAlt /> Reservation: <strong>{d.airbnbCode}</strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
             // HOTEL CARD
             return (
               <div key={b.id} className="booking-card hotel-card">
@@ -418,10 +485,13 @@ function BookingManager({ destination = "Kakinada", source = "Hyderabad" }) {
                       ? "Train Ticket"
                       : modalType === "bus"
                       ? "Bus Booking"
+                      : modalType === "airbnb"
+                      ? "Airbnb Homestay / Villa"
                       : "Hotel Stay"}
                   </h3>
                   <p>Save details to your personal trip dossier.</p>
                 </div>
+
                 <button
                   type="button"
                   className="close-modal-btn"
@@ -791,7 +861,95 @@ function BookingManager({ destination = "Kakinada", source = "Hyderabad" }) {
                   </>
                 )}
 
+                {/* AIRBNB FORM */}
+                {modalType === "airbnb" && (
+                  <>
+                    <div className="form-field">
+                      <label>Airbnb Homestay / Villa Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Heritage Riverside Homestay with Kitchen"
+                        value={formData.airbnbName}
+                        onChange={(e) =>
+                          setFormData({ ...formData, airbnbName: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Superhost / Host Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Ramesh (Superhost)"
+                        value={formData.airbnbHost}
+                        onChange={(e) =>
+                          setFormData({ ...formData, airbnbHost: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Check-in Date *</label>
+                      <input
+                        type="date"
+                        required
+                        value={formData.airbnbCheckIn}
+                        onChange={(e) =>
+                          setFormData({ ...formData, airbnbCheckIn: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Check-out Date *</label>
+                      <input
+                        type="date"
+                        required
+                        value={formData.airbnbCheckOut}
+                        onChange={(e) =>
+                          setFormData({ ...formData, airbnbCheckOut: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Property Type</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Entire Villa, Private Room, Beach Cottage"
+                        value={formData.airbnbPropertyType}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            airbnbPropertyType: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Airbnb Address / Location</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Near Beach Road, Kakinada"
+                        value={formData.airbnbAddress}
+                        onChange={(e) =>
+                          setFormData({ ...formData, airbnbAddress: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Reservation Code (HM...)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. HM98214XY"
+                        value={formData.airbnbCode}
+                        onChange={(e) =>
+                          setFormData({ ...formData, airbnbCode: e.target.value })
+                        }
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div className="form-submit-row">
+
                   <button
                     type="button"
                     className="cancel-btn"

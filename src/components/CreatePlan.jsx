@@ -537,13 +537,13 @@ Give 3 concise bullet points:
                   </div>
                 </div>
 
-                {/* HOTEL BOOKINGS */}
+                {/* HOTEL & AIRBNB BOOKINGS */}
                 <div className="booking-service-block">
                   <div className="service-title-row">
                     <span className="service-icon hotel"><FaHotel /></span>
                     <div>
-                      <strong>Hotels & Stays (MakeMyTrip / Agoda)</strong>
-                      <small>Verified reviews & instant booking</small>
+                      <strong>Hotels, Homestays & Airbnb (MakeMyTrip / Airbnb / Agoda)</strong>
+                      <small>Verified hotels, unique local homestays & private villas</small>
                     </div>
                   </div>
                   <div className="service-buttons-row">
@@ -556,7 +556,15 @@ Give 3 concise bullet points:
                       MakeMyTrip ↗
                     </a>
                     <a
-                      href={`https://www.agoda.com/search?city=${destination.toLowerCase()}`}
+                      href={`https://www.airbnb.com/s/${encodeURIComponent(destination)}/homes`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="book-ext-btn airbnb"
+                    >
+                      Airbnb Homestays ↗
+                    </a>
+                    <a
+                      href={`https://www.agoda.com/search?city=${encodeURIComponent(destination.toLowerCase())}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="book-ext-btn agoda"
@@ -567,6 +575,7 @@ Give 3 concise bullet points:
                 </div>
               </div>
             </div>
+
 
             {/* REAL-TIME DESTINATION NEWS & WEATHER RADAR */}
             <div className="live-news-radar-card">

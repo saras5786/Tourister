@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { puter } from "@heyputer/puter.js";
 import {
@@ -16,17 +16,29 @@ import {
   FaMagic,
   FaImage,
   FaPaperPlane,
+  FaSyncAlt,
 } from "react-icons/fa";
 import { initialCommunityPosts, evaluatePostWithAI } from "../data/communityPosts";
+import { fetchCommunityPosts, createCommunityPost } from "../services/api";
 import destinationsList from "../data/destinations";
 import "./Community.css";
 
 function Community({ onBack, onOpenGem, username = "Tourister" }) {
   const [posts, setPosts] = useState(() => {
     const saved = localStorage.getItem("tourister_community_posts");
-    return saved ? JSON.parse(saved) : initialCommunityPosts;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return initialCommunityPosts;
   });
 
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncNotice, setSyncNotice] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [likedPosts, setLikedPosts] = useState([]);
@@ -44,7 +56,61 @@ function Community({ onBack, onOpenGem, username = "Tourister" }) {
   const [formIsHiddenGem, setFormIsHiddenGem] = useState(false);
   const [draftingAI, setDraftingAI] = useState(false);
 
-  // Persist posts
+  // Sync Community Posts across all users and accounts
+  const loadCommunityPosts = useCallback(async (showNotice = false) => {
+    setIsSyncing(true);
+    try {
+      const fetched = await fetchCommunityPosts();
+      if (Array.isArray(fetched) && fetched.length > 0) {
+        const postMap = new Map();
+        // Base guide recommendations
+        initialCommunityPosts.forEach((p) => p && p.id && postMap.set(p.id, p));
+        // Server + Cloud live posts
+        fetched.forEach((p) => p && p.id && postMap.set(p.id, p));
+
+        const getPostTime = (p) => {
+          if (p.createdAt) return new Date(p.createdAt).getTime();
+          if (p.created_at) return new Date(p.created_at).getTime();
+          const match = String(p.id).match(/\d{10,}/);
+          if (match) return parseInt(match[0], 10);
+          return 0;
+        };
+
+        const sorted = Array.from(postMap.values()).sort(
+          (a, b) => getPostTime(b) - getPostTime(a)
+        );
+
+        setPosts(sorted);
+        if (showNotice) {
+          setSyncNotice("Live feed updated with latest traveler reports!");
+          setTimeout(() => setSyncNotice(""), 4000);
+        }
+      }
+    } catch (err) {
+      console.warn("Could not sync community posts:", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, []);
+
+  // Fetch immediately on mount, on window focus, and periodically
+  useEffect(() => {
+    loadCommunityPosts(false);
+
+    const handleFocus = () => loadCommunityPosts(false);
+    window.addEventListener("focus", handleFocus);
+
+    const interval = setInterval(() => {
+      loadCommunityPosts(false);
+    }, 20000);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      clearInterval(interval);
+    };
+  }, [loadCommunityPosts]);
+
+  // Persist posts locally
   useEffect(() => {
     localStorage.setItem("tourister_community_posts", JSON.stringify(posts));
   }, [posts]);
@@ -160,10 +226,14 @@ STORY: [2-3 sentences with specific tips, local prices, and precautions]`;
           aiAnalysis:
             "Cross-checked with geographic landmarks and verified traveler telemetry.",
         },
+        createdAt: new Date().toISOString(),
       };
 
-      setPosts([newPost, ...posts]);
-      setScoutNotif(`Generated new verified traveler story for ${dest}!`);
+      setPosts((prev) => [newPost, ...prev.filter((p) => p.id !== newPost.id)]);
+      createCommunityPost(newPost).catch((err) =>
+        console.warn("Live AI post sync notice:", err)
+      );
+      setScoutNotif(`Generated new verified traveler story for ${dest}! Synced with community.`);
       setTimeout(() => setScoutNotif(""), 5000);
     } catch (err) {
       console.warn("AI generation notice:", err);
@@ -265,15 +335,23 @@ STORY: [2 sentences with real details]`;
       commentsCount: 0,
       aiVerification: evaluation,
       isHiddenGem: formIsHiddenGem,
+      createdAt: new Date().toISOString(),
     };
 
-    setPosts([newPost, ...posts]);
+    setPosts((prev) => [newPost, ...prev.filter((p) => p.id !== newPost.id)]);
     setShowUploadModal(false);
     setFormTitle("");
     setFormContent("");
     setFormLocation("");
     setFormIsHiddenGem(false);
-    alert("🎉 Your travel post has been published to the community feed!");
+
+    try {
+      await createCommunityPost(newPost);
+      setScoutNotif("🎉 Your travel post has been published and synced with all travelers!");
+      setTimeout(() => setScoutNotif(""), 5000);
+    } catch (err) {
+      console.warn("Post sync error:", err);
+    }
   };
 
   const filteredPosts = posts.filter((post) => {
@@ -299,8 +377,19 @@ STORY: [2 sentences with real details]`;
           <FaShieldAlt className="nav-icon" />
           <span>TOURISTER COMMUNITY & TRAVEL ADVISORIES</span>
         </div>
-        <div className="community-stats-pill">
-          <span>● {posts.length} Live Reports Active</span>
+        <div className="community-nav-right">
+          <button
+            className="sync-feed-btn"
+            onClick={() => loadCommunityPosts(true)}
+            disabled={isSyncing}
+            title="Sync latest posts across all user accounts & devices"
+          >
+            <FaSyncAlt className={isSyncing ? "spin-icon" : ""} />
+            <span>{isSyncing ? "Syncing..." : "Sync Feed"}</span>
+          </button>
+          <div className="community-stats-pill">
+            <span>● {posts.length} Live Reports Active</span>
+          </div>
         </div>
       </header>
 
@@ -389,8 +478,22 @@ STORY: [2 sentences with real details]`;
         {/* POSTS GRID */}
         <section className="community-feed-section">
           <div className="feed-header">
-            <h3>Verified Travel Reports & Scam Shield</h3>
-            <span className="live-stream-tag">● LIVE COMMUNITY STREAM ({filteredPosts.length} POSTS)</span>
+            <div className="feed-title-wrap">
+              <h3>Verified Travel Reports & Scam Shield</h3>
+              {syncNotice && <span className="sync-notice-pill">✓ {syncNotice}</span>}
+            </div>
+            <div className="feed-header-controls">
+              <button
+                className="refresh-stream-btn"
+                onClick={() => loadCommunityPosts(true)}
+                disabled={isSyncing}
+                title="Refresh real-time community stream"
+              >
+                <FaSyncAlt className={isSyncing ? "spin-icon" : ""} />
+                <span>{isSyncing ? "Refreshing..." : "Refresh"}</span>
+              </button>
+              <span className="live-stream-tag">● LIVE STREAM ({filteredPosts.length} POSTS)</span>
+            </div>
           </div>
 
           <div className="posts-grid">

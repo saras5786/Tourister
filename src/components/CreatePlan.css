@@ -1388,6 +1388,11 @@
   color: #ffffff;
 }
 
+.book-ext-btn.airbnb {
+  background: #ff385c;
+  color: #ffffff;
+}
+
 .book-ext-btn.agoda {
   background: #0284c7;
   color: #ffffff;
@@ -1397,6 +1402,7 @@
   transform: translateY(-2px);
   filter: brightness(1.1);
 }
+
 
 /* =========================================
    RAPIDO-STYLE LOCATION AUTOCOMPLETE SEARCH

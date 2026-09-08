@@ -2,6 +2,15 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import pg from "pg";
+import {
+  handleAuthSignup,
+  handleAuthLogin,
+  handleUpdateUser,
+  handleSavePlan,
+  handleGetPlans,
+  readDb,
+  writeDb,
+} from "./server/dbHelper.js";
 
 dotenv.config();
 
@@ -9,18 +18,21 @@ const { Pool } = pg;
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+let isPgConnected = false;
+
 // Enable CORS and JSON body parser
 app.use(cors());
 app.use(express.json());
 
 // PostgreSQL Connection Pool configuration
-// Uses DATABASE_URL or individual PG environment variables with sensible defaults
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
     "postgresql://postgres:postgres@localhost:5432/tourister_db",
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 2000,
 });
+
 
 // Auto-initialize tables if PostgreSQL is running
 async function initDatabase() {
@@ -77,9 +89,11 @@ async function initDatabase() {
     `);
 
     client.release();
+    isPgConnected = true;
     console.log("PostgreSQL database tables initialized.");
   } catch (err) {
-    console.warn("PostgreSQL connection notice (running with automatic client-side database persistence):", err.message);
+    isPgConnected = false;
+    console.warn("PostgreSQL offline; using resilient JSON file store (server/tourister_db.json):", err.message);
   }
 }
 
@@ -93,13 +107,19 @@ initDatabase();
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    service: "Tourister AI PostgreSQL Engine",
+    service: "Tourister Hybrid (PostgreSQL + JSON Engine)",
+    storage: isPgConnected ? "PostgreSQL" : "File-Based JSON Database",
     timestamp: new Date().toISOString(),
   });
 });
 
 // 2. Auth: Signup
 app.post("/api/auth/signup", async (req, res) => {
+  if (!isPgConnected) {
+    const result = handleAuthSignup(req.body);
+    return res.status(result.status).json(result.data);
+  }
+
   const { username, email, password } = req.body;
   if (!username || !email || !password) {
     return res.status(400).json({ error: "All fields are required" });
@@ -117,12 +137,18 @@ app.post("/api/auth/signup", async (req, res) => {
     if (err.code === "23505") {
       return res.status(409).json({ error: "Username or email already exists" });
     }
-    res.status(500).json({ error: "Database error during signup", details: err.message });
+    const fallback = handleAuthSignup(req.body);
+    res.status(fallback.status).json(fallback.data);
   }
 });
 
 // 3. Auth: Login
 app.post("/api/auth/login", async (req, res) => {
+  if (!isPgConnected) {
+    const result = handleAuthLogin(req.body);
+    return res.status(result.status).json(result.data);
+  }
+
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: "Username and password required" });
@@ -144,7 +170,8 @@ app.post("/api/auth/login", async (req, res) => {
     delete user.password_hash;
     res.json({ success: true, user });
   } catch (err) {
-    res.status(500).json({ error: "Database error during login", details: err.message });
+    const fallback = handleAuthLogin(req.body);
+    res.status(fallback.status).json(fallback.data);
   }
 });
 
@@ -152,6 +179,11 @@ app.post("/api/auth/login", async (req, res) => {
 app.put("/api/auth/user/:username", async (req, res) => {
   const { username } = req.params;
   const { userPoints, walletBalance, newPassword } = req.body;
+
+  if (!isPgConnected) {
+    const result = handleUpdateUser(username, req.body);
+    return res.status(result.status).json(result.data);
+  }
 
   try {
     const updates = [];
@@ -189,12 +221,18 @@ app.put("/api/auth/user/:username", async (req, res) => {
 
     res.json({ success: true, user: result.rows[0] });
   } catch (err) {
-    res.status(500).json({ error: "Database update error", details: err.message });
+    const fallback = handleUpdateUser(username, req.body);
+    res.status(fallback.status).json(fallback.data);
   }
 });
 
 // 5. Trip Plans: Save Itinerary
 app.post("/api/plans", async (req, res) => {
+  if (!isPgConnected) {
+    const result = handleSavePlan(req.body);
+    return res.status(result.status).json(result.data);
+  }
+
   const {
     username,
     source,
@@ -232,13 +270,19 @@ app.post("/api/plans", async (req, res) => {
 
     res.status(201).json({ success: true, plan: result.rows[0] });
   } catch (err) {
-    res.status(500).json({ error: "Error saving plan to PostgreSQL", details: err.message });
+    const fallback = handleSavePlan(req.body);
+    res.status(fallback.status).json(fallback.data);
   }
 });
 
 // 6. Trip Plans: Get User Itineraries
 app.get("/api/plans/:username", async (req, res) => {
   const { username } = req.params;
+
+  if (!isPgConnected) {
+    const result = handleGetPlans(username);
+    return res.status(result.status).json(result.data);
+  }
 
   try {
     const result = await pool.query(
@@ -247,24 +291,45 @@ app.get("/api/plans/:username", async (req, res) => {
     );
     res.json({ success: true, plans: result.rows });
   } catch (err) {
-    res.status(500).json({ error: "Error fetching saved plans", details: err.message });
+    const fallback = handleGetPlans(username);
+    res.status(fallback.status).json(fallback.data);
   }
 });
 
 // 7. Community: Fetch Posts
 app.get("/api/posts", async (req, res) => {
+  if (!isPgConnected) {
+    const db = readDb();
+    return res.json({ success: true, posts: db.community_posts || [] });
+  }
+
   try {
     const result = await pool.query(
       `SELECT * FROM community_posts ORDER BY created_at DESC LIMIT 50`
     );
     res.json({ success: true, posts: result.rows });
   } catch (err) {
-    res.status(500).json({ error: "Error fetching posts", details: err.message });
+    const db = readDb();
+    res.json({ success: true, posts: db.community_posts || [] });
   }
 });
 
 // 8. Community: Create Post
 app.post("/api/posts", async (req, res) => {
+  if (!isPgConnected) {
+    const db = readDb();
+    const newPost = {
+      id: req.body.id || `post-${Date.now()}`,
+      ...req.body,
+      created_at: req.body.createdAt || new Date().toISOString(),
+    };
+    if (!db.community_posts) db.community_posts = [];
+    db.community_posts = db.community_posts.filter((p) => p.id !== newPost.id);
+    db.community_posts.unshift(newPost);
+    writeDb(db);
+    return res.status(201).json({ success: true, post: newPost });
+  }
+
   const {
     authorName,
     authorTier,
@@ -298,10 +363,21 @@ app.post("/api/posts", async (req, res) => {
 
     res.status(201).json({ success: true, post: result.rows[0] });
   } catch (err) {
-    res.status(500).json({ error: "Error creating community post", details: err.message });
+    const db = readDb();
+    const newPost = {
+      id: req.body.id || `post-${Date.now()}`,
+      ...req.body,
+      created_at: req.body.createdAt || new Date().toISOString(),
+    };
+    if (!db.community_posts) db.community_posts = [];
+    db.community_posts = db.community_posts.filter((p) => p.id !== newPost.id);
+    db.community_posts.unshift(newPost);
+    writeDb(db);
+    res.status(201).json({ success: true, post: newPost });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Tourister PostgreSQL Backend running on port ${PORT}`);
+  console.log(`Tourister Hybrid Server running on port ${PORT}`);
 });
+

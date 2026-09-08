@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { puter } from "@heyputer/puter.js";
 import {
   FaMoneyBillWave,
@@ -13,84 +13,297 @@ import {
   FaBed,
   FaUsers,
   FaCalendarAlt,
+  FaPlane,
+  FaBus,
+  FaCar,
+  FaShoppingBag,
+  FaCopy,
+  FaCheck,
+  FaSyncAlt,
+  FaBalanceScale,
+  FaChartPie,
+  FaCoins,
 } from "react-icons/fa";
 import "./BudgetEstimator.css";
 
-const CURRENCY_RATES = {
+// Default currency rates with live API synchronization
+const INITIAL_CURRENCIES = {
   INR: { symbol: "₹", rate: 1, label: "INR (₹)" },
-  USD: { symbol: "$", rate: 0.012, label: "USD ($)" },
-  EUR: { symbol: "€", rate: 0.011, label: "EUR (€)" },
+  USD: { symbol: "$", rate: 0.0118, label: "USD ($)" },
+  EUR: { symbol: "€", rate: 0.0108, label: "EUR (€)" },
+  GBP: { symbol: "£", rate: 0.0093, label: "GBP (£)" },
+  AED: { symbol: "AED", rate: 0.0433, label: "AED" },
+  SGD: { symbol: "S$", rate: 0.0157, label: "SGD (S$)" },
 };
 
 const HOTEL_TIERS = [
-  { id: "budget", name: "Budget Homestay / Guest House", ratePerNight: 900, desc: "Clean & verified rooms near attractions" },
-  { id: "standard", name: "3-Star Comfort Hotel", ratePerNight: 2200, desc: "AC rooms with breakfast & temple/beach view" },
-  { id: "luxury", name: "4-Star & Heritage Resort", ratePerNight: 5500, desc: "Luxury amenities, pool & fine dining" },
+  {
+    id: "budget",
+    name: "Budget Homestay / Hostel",
+    ratePerNight: 950,
+    desc: "Clean verified rooms, local homestays & dharamsalas",
+    icon: "🏠",
+  },
+  {
+    id: "standard",
+    name: "3-Star Comfort Hotel",
+    ratePerNight: 2400,
+    desc: "AC rooms with breakfast, temple/beach shuttle",
+    icon: "🏨",
+  },
+  {
+    id: "luxury",
+    name: "4-Star & Heritage Resort",
+    ratePerNight: 5800,
+    desc: "Luxury suites, swimming pool, gourmet dining & spa",
+    icon: "👑",
+  },
 ];
 
 const TRANSPORT_MODES = [
-  { id: "train", name: "Express Train (AC 3-Tier)", costPerPerson: 1100 },
-  { id: "bus", name: "AC Sleeper Bus", costPerPerson: 950 },
-  { id: "flight", name: "Direct Flight", costPerPerson: 3800 },
-  { id: "cab", name: "Private Road Cab (Roundtrip)", costPerPerson: 2200 },
+  { id: "train", name: "Express Train (AC 3-Tier)", costPerPerson: 1150, icon: FaTrain },
+  { id: "bus", name: "AC Sleeper Bus", costPerPerson: 980, icon: FaBus },
+  { id: "flight", name: "Direct Domestic Flight", costPerPerson: 3950, icon: FaPlane },
+  { id: "cab", name: "Private Road Cab / Rental", costPerPerson: 2300, icon: FaCar },
+];
+
+const FOOD_TIERS = [
+  { id: "street", label: "Authentic Local & Street Food", costPerDay: 350, desc: "Traditional messes, tiffin & banana leaf thalis" },
+  { id: "casual", label: "Casual Dining & Cafes", costPerDay: 750, desc: "Family AC restaurants & cafe meals" },
+  { id: "fine", label: "Fine Dining & Heritage Feasts", costPerDay: 1650, desc: "Multi-course regional feasts & buffet dinners" },
 ];
 
 function BudgetEstimator({ onBack }) {
+  // Primary Travel Inputs
   const [origin, setOrigin] = useState("Hyderabad");
   const [destination, setDestination] = useState("Tirupati");
   const [days, setDays] = useState(3);
   const [travelers, setTravelers] = useState(2);
   const [selectedHotel, setSelectedHotel] = useState("standard");
   const [selectedTransport, setSelectedTransport] = useState("train");
-  const [currency, setCurrency] = useState("INR");
+  const [foodTier, setFoodTier] = useState("casual");
 
+  // Granular Real-Time Sliders
+  const [sightseeingBudget, setSightseeingBudget] = useState(400); // per traveler
+  const [shoppingBudget, setShoppingBudget] = useState(600); // per traveler
+  const [localAutoDaily, setLocalAutoDaily] = useState(450); // per day
+
+  // Currency & Real-Time Exchange Rate Engine
+  const [currency, setCurrency] = useState("INR");
+  const [currencyRates, setCurrencyRates] = useState(INITIAL_CURRENCIES);
+  const [liveRatesActive, setLiveRatesActive] = useState(false);
+  const [fetchingRates, setFetchingRates] = useState(false);
+
+  // Active View Tab ('breakdown' | 'compare' | 'cashflow')
+  const [viewMode, setViewMode] = useState("breakdown");
+
+  // AI Savings Advice
   const [savingTips, setSavingTips] = useState(null);
   const [loadingTips, setLoadingTips] = useState(false);
+  const [copiedSummary, setCopiedSummary] = useState(false);
 
+  // 1. Fetch Real-Time Live Exchange Rates
+  const refreshLiveRates = async () => {
+    setFetchingRates(true);
+    try {
+      const res = await fetch("https://open.er-api.com/v6/latest/INR", {
+        signal: AbortSignal.timeout(4000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.rates) {
+          setCurrencyRates((prev) => ({
+            INR: { ...prev.INR, rate: 1 },
+            USD: { ...prev.USD, rate: data.rates.USD || prev.USD.rate },
+            EUR: { ...prev.EUR, rate: data.rates.EUR || prev.EUR.rate },
+            GBP: { ...prev.GBP, rate: data.rates.GBP || prev.GBP.rate },
+            AED: { ...prev.AED, rate: data.rates.AED || prev.AED.rate },
+            SGD: { ...prev.SGD, rate: data.rates.SGD || prev.SGD.rate },
+          }));
+          setLiveRatesActive(true);
+        }
+      }
+    } catch (e) {
+      console.warn("Live currency rates offline, using benchmark rates:", e);
+    } finally {
+      setFetchingRates(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshLiveRates();
+  }, []);
+
+  const curr = currencyRates[currency] || currencyRates.INR;
   const hotelObj = HOTEL_TIERS.find((h) => h.id === selectedHotel) || HOTEL_TIERS[1];
   const transportObj = TRANSPORT_MODES.find((t) => t.id === selectedTransport) || TRANSPORT_MODES[0];
-  const curr = CURRENCY_RATES[currency];
+  const foodObj = FOOD_TIERS.find((f) => f.id === foodTier) || FOOD_TIERS[1];
 
-  // Number of hotel rooms needed (1 room for every 2 travelers)
+  // 2. Real-Time Math Engine
   const roomsCount = Math.ceil(travelers / 2);
-  const hotelTotal = hotelObj.ratePerNight * (days > 1 ? days - 1 : 1) * roomsCount;
+  const nightsCount = days > 1 ? days - 1 : 1;
+  const hotelTotal = hotelObj.ratePerNight * nightsCount * roomsCount;
   const transportTotal = transportObj.costPerPerson * travelers;
-  const localAutoTotal = 500 * days;
-  const foodTotal = 550 * days * travelers;
-  const activitiesTotal = 350 * travelers;
-  const bufferTotal = 1000;
+  const foodTotal = foodObj.costPerDay * days * travelers;
+  const localTransitTotal = localAutoDaily * days;
+  const activitiesTotal = sightseeingBudget * travelers;
+  const shoppingTotal = shoppingBudget * travelers;
+  const contingencyBuffer = Math.round((hotelTotal + transportTotal + foodTotal) * 0.07);
 
-  const grandTotalINR = hotelTotal + transportTotal + localAutoTotal + foodTotal + activitiesTotal + bufferTotal;
+  const grandTotalINR =
+    hotelTotal +
+    transportTotal +
+    foodTotal +
+    localTransitTotal +
+    activitiesTotal +
+    shoppingTotal +
+    contingencyBuffer;
+
   const grandTotalConverted = Math.round(grandTotalINR * curr.rate);
-  const perPersonConverted = Math.round(grandTotalConverted / travelers);
+  const perPersonConverted = Math.round(grandTotalConverted / Math.max(1, travelers));
 
+  // Category Breakdown
   const categories = [
-    { name: `Hotel (${roomsCount} Room${roomsCount > 1 ? "s" : ""}, ${days - 1 > 0 ? days - 1 : 1} Night${days > 2 ? "s" : ""})`, amount: hotelTotal, icon: FaHotel, color: "#3b82f6", pct: Math.round((hotelTotal / grandTotalINR) * 100) },
-    { name: `Travel (${transportObj.name})`, amount: transportTotal, icon: FaTrain, color: "#8b5cf6", pct: Math.round((transportTotal / grandTotalINR) * 100) },
-    { name: "Local Autos & Cabs", amount: localAutoTotal, icon: FaMoneyBillWave, color: "#06b6d4", pct: Math.round((localAutoTotal / grandTotalINR) * 100) },
-    { name: "Food & Regional Meals", amount: foodTotal, icon: FaUtensils, color: "#f59e0b", pct: Math.round((foodTotal / grandTotalINR) * 100) },
-    { name: "Entry Tickets & Darshan", amount: activitiesTotal, icon: FaTicketAlt, color: "#10b981", pct: Math.round((activitiesTotal / grandTotalINR) * 100) },
-    { name: "Emergency Buffer", amount: bufferTotal, icon: FaShieldAlt, color: "#ec4899", pct: Math.round((bufferTotal / grandTotalINR) * 100) },
+    {
+      name: `Stay (${roomsCount} Room${roomsCount > 1 ? "s" : ""}, ${nightsCount} Night${nightsCount > 1 ? "s" : ""})`,
+      amount: hotelTotal,
+      icon: FaHotel,
+      color: "#3b82f6",
+      pct: Math.round((hotelTotal / grandTotalINR) * 100),
+    },
+    {
+      name: `Transit (${transportObj.name})`,
+      amount: transportTotal,
+      icon: transportObj.icon,
+      color: "#8b5cf6",
+      pct: Math.round((transportTotal / grandTotalINR) * 100),
+    },
+    {
+      name: `Food & Dining (${foodObj.label})`,
+      amount: foodTotal,
+      icon: FaUtensils,
+      color: "#f59e0b",
+      pct: Math.round((foodTotal / grandTotalINR) * 100),
+    },
+    {
+      name: "Local Auto & Metro Sightseeing",
+      amount: localTransitTotal,
+      icon: FaMoneyBillWave,
+      color: "#06b6d4",
+      pct: Math.round((localTransitTotal / grandTotalINR) * 100),
+    },
+    {
+      name: "Entry Tickets & VIP Darshan",
+      amount: activitiesTotal,
+      icon: FaTicketAlt,
+      color: "#10b981",
+      pct: Math.round((activitiesTotal / grandTotalINR) * 100),
+    },
+    {
+      name: "GI Crafts & Souvenir Shopping",
+      amount: shoppingTotal,
+      icon: FaShoppingBag,
+      color: "#ec4899",
+      pct: Math.round((shoppingTotal / grandTotalINR) * 100),
+    },
+    {
+      name: "Contingency & Medical Buffer",
+      amount: contingencyBuffer,
+      icon: FaShieldAlt,
+      color: "#64748b",
+      pct: Math.round((contingencyBuffer / grandTotalINR) * 100),
+    },
   ];
 
+  // 3-Way Side-by-Side Comparison Calculation
+  const compareTiers = [
+    {
+      title: "Backpacker / Shoestring",
+      hotel: "Budget Homestay (₹950)",
+      transport: "AC Bus / Sleeper Train",
+      food: "Local Mess & Street Food (₹350/day)",
+      totalINR:
+        950 * nightsCount * roomsCount +
+        950 * travelers +
+        350 * days * travelers +
+        300 * days +
+        200 * travelers +
+        500,
+      highlight: "Maximum Savings",
+      color: "#10b981",
+    },
+    {
+      title: "Balanced Smart Explorer",
+      hotel: "3-Star AC Hotel (₹2,400)",
+      transport: "AC 3-Tier Train / Road Cab",
+      food: "Casual Dining (₹750/day)",
+      totalINR: grandTotalINR,
+      highlight: "Recommended Balance",
+      color: "#3b82f6",
+      isCurrent: true,
+    },
+    {
+      title: "Luxury & Heritage Vacation",
+      hotel: "4/5-Star Resort (₹5,800)",
+      transport: "Direct Flight",
+      food: "Gourmet Buffets (₹1,650/day)",
+      totalINR:
+        5800 * nightsCount * roomsCount +
+        3950 * travelers +
+        1650 * days * travelers +
+        900 * days +
+        800 * travelers +
+        2500,
+      highlight: "Premium Comfort",
+      color: "#8b5cf6",
+    },
+  ];
+
+  // 1-Click Copy Summary
+  const handleCopySummary = () => {
+    const text =
+      `✈️ TOURISTER TRIP BUDGET ESTIMATE\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `📍 Route: ${origin} ➔ ${destination}\n` +
+      `🗓️ Duration: ${days} Days · 👥 Travelers: ${travelers}\n` +
+      `🏨 Hotel: ${hotelObj.name} (${roomsCount} Room(s), ${nightsCount} Night(s))\n` +
+      `🚆 Transit: ${transportObj.name}\n` +
+      `🍲 Food Tier: ${foodObj.label}\n\n` +
+      `💰 Total Estimated Cost: ${curr.symbol}${grandTotalConverted.toLocaleString()} ${currency}\n` +
+      `👤 Per Person: ${curr.symbol}${perPersonConverted.toLocaleString()} ${currency}\n\n` +
+      `📊 Category Breakdown:\n` +
+      categories
+        .map(
+          (c) =>
+            `• ${c.name}: ${curr.symbol}${Math.round(c.amount * curr.rate).toLocaleString()} (${c.pct}%)`
+        )
+        .join("\n") +
+      `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nGenerated in Real Time with Tourister AI`;
+
+    navigator.clipboard.writeText(text);
+    setCopiedSummary(true);
+    setTimeout(() => setCopiedSummary(false), 2200);
+  };
+
+  // AI Savings Tip Generator
   const handleGetSavingsTips = async () => {
     setLoadingTips(true);
     try {
-      const prompt = `Give 3 simple, practical, friendly money-saving tips for someone traveling from ${origin} to ${destination} for ${days} days with ${travelers} people staying in a ${hotelObj.name}. Mention specific local hacks like booking government buses, meal places, or ticket tricks. Keep it in simple, friendly bullet points.`;
-      
-      const response = await puter.ai.chat(
-        [{ role: "user", content: prompt }],
-        { model: "openai/gpt-5.6-luna", reasoning_effort: "low" }
-      );
+      const prompt = `Give 4 ultra-practical, insider money-saving hacks for someone traveling from ${origin} to ${destination} for ${days} days with ${travelers} people choosing ${hotelObj.name} and ${transportObj.name}. Mention local booking hacks, timing tips, meal tricks, and transit avoidance. Use clean bullet points.`;
+
+      const response = await puter.ai.chat([{ role: "user", content: prompt }], {
+        model: "openai/gpt-5.6-luna",
+        reasoning_effort: "low",
+      });
 
       const reply = response?.message?.content || response?.text;
       setSavingTips(reply);
     } catch (e) {
-      console.warn("Savings tip fallback:", e);
       setSavingTips(
-        `• 🚆 **Travel Hack:** Book Superfast Express train tickets 2 weeks in advance to secure regular fares and avoid last-minute surge rates.\n` +
-        `• 🏨 **Hotel Tip:** Choose verified guest houses or homestays located within 2km of the central temple / beach for easy walking access.\n` +
-        `• 🍲 **Dining Hack:** Enjoy authentic morning breakfast and lunch at iconic heritage messes serving unlimited banana leaf thalis for just ₹120-150.`
+        `• 🚆 **Transit Hack:** Book Tatkal or Advance quota on Superfast Express trains to skip dynamic surge fares on private road cabs.\n` +
+          `• 🏨 **Stay Tip:** Check verified heritage homestays 1.5km outside the central temple or beach cluster for 35% lower room rates with free breakfast.\n` +
+          `• 🍲 **Dining Secret:** Enjoy breakfast and lunch at traditional heritage messes serving unlimited banana leaf thalis for ₹120-140/person.\n` +
+          `• 🛺 **Local Commute:** Use prepaid station auto booths or fixed-meter rides to avoid tourist highway surcharges.`
       );
     } finally {
       setLoadingTips(false);
@@ -99,44 +312,59 @@ function BudgetEstimator({ onBack }) {
 
   return (
     <main className="budget-page">
-      {/* HEADER */}
+      {/* HEADER NAVBAR */}
       <header className="budget-navbar">
         <button className="budget-back-btn" onClick={onBack}>
           ← Dashboard
         </button>
+
         <div className="budget-nav-title">
           <FaCalculator className="nav-icon" />
-          <span>INTERACTIVE TRIP BUDGET CALCULATOR</span>
+          <span>REAL-TIME TRIP BUDGET ESTIMATOR</span>
         </div>
-        <div className="currency-selector">
-          {Object.keys(CURRENCY_RATES).map((c) => (
-            <button
-              key={c}
-              className={`currency-btn ${currency === c ? "active" : ""}`}
-              onClick={() => setCurrency(c)}
-            >
-              {CURRENCY_RATES[c].label}
-            </button>
-          ))}
+
+        {/* LIVE MULTI-CURRENCY SWITCHER */}
+        <div className="currency-selector-wrapper">
+          <div className="currency-selector">
+            {Object.keys(currencyRates).map((c) => (
+              <button
+                key={c}
+                className={`currency-btn ${currency === c ? "active" : ""}`}
+                onClick={() => setCurrency(c)}
+              >
+                {currencyRates[c].label}
+              </button>
+            ))}
+          </div>
+          <button
+            className="refresh-rates-btn"
+            onClick={refreshLiveRates}
+            title="Update Live Forex Rates"
+            disabled={fetchingRates}
+          >
+            <FaSyncAlt className={fetchingRates ? "spin" : ""} />
+            <small>{liveRatesActive ? "Live Rates" : "Standard"}</small>
+          </button>
         </div>
       </header>
 
       <div className="budget-container">
-        {/* HERO */}
+        {/* HERO BANNER */}
         <section className="budget-hero">
           <div className="budget-pill">
-            <span>REALISTIC EXPENSE PLANNER</span>
+            <FaCoins /> REAL-TIME DYNAMIC EXPENSE ENGINE
           </div>
           <h1>
-            Estimate Your <span>Trip Budget</span>
+            Estimate Your <span>Trip Expenses Live</span>
           </h1>
           <p>
-            Choose where you're going, which hotel you prefer, how many days you're staying, and how many people are traveling to see your total cost breakdown.
+            Adjust days, number of travelers, hotel tiers, and transport in real time. Costs automatically recalculate instantly with live currency conversion.
           </p>
         </section>
 
-        {/* CONTROLS CARD */}
+        {/* INTERACTIVE CONTROLS CARD */}
         <div className="budget-inputs-card">
+          {/* ORIGIN & DESTINATION */}
           <div className="input-group">
             <label>STARTING CITY (FROM)</label>
             <input
@@ -157,27 +385,55 @@ function BudgetEstimator({ onBack }) {
             />
           </div>
 
+          {/* DURATION DAYS STEPPER & SLIDER */}
           <div className="input-group">
-            <label>NUMBER OF DAYS</label>
-            <div className="number-stepper">
-              <button onClick={() => setDays(Math.max(1, days - 1))}>-</button>
-              <span>{days} Days</span>
-              <button onClick={() => setDays(days + 1)}>+</button>
+            <div className="label-with-val">
+              <label><FaCalendarAlt /> DURATION</label>
+              <strong>{days} Days ({nightsCount} Night{nightsCount > 1 ? "s" : ""})</strong>
+            </div>
+            <div className="stepper-slider-combo">
+              <div className="number-stepper">
+                <button onClick={() => setDays(Math.max(1, days - 1))}>-</button>
+                <span>{days} Days</span>
+                <button onClick={() => setDays(days + 1)}>+</button>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="21"
+                value={days}
+                onChange={(e) => setDays(Number(e.target.value))}
+                className="budget-slider"
+              />
             </div>
           </div>
 
+          {/* TRAVELERS STEPPER & SLIDER */}
           <div className="input-group">
-            <label>NUMBER OF PEOPLE</label>
-            <div className="number-stepper">
-              <button onClick={() => setTravelers(Math.max(1, travelers - 1))}>-</button>
-              <span>{travelers} Traveler{travelers > 1 ? "s" : ""}</span>
-              <button onClick={() => setTravelers(travelers + 1)}>+</button>
+            <div className="label-with-val">
+              <label><FaUsers /> TRAVELERS</label>
+              <strong>{travelers} People ({roomsCount} Room{roomsCount > 1 ? "s" : ""})</strong>
+            </div>
+            <div className="stepper-slider-combo">
+              <div className="number-stepper">
+                <button onClick={() => setTravelers(Math.max(1, travelers - 1))}>-</button>
+                <span>{travelers} Person{travelers > 1 ? "s" : ""}</span>
+                <button onClick={() => setTravelers(travelers + 1)}>+</button>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="12"
+                value={travelers}
+                onChange={(e) => setTravelers(Number(e.target.value))}
+                className="budget-slider"
+              />
             </div>
           </div>
 
-          {/* HOTEL SELECTION */}
+          {/* ACCOMMODATION SELECTION */}
           <div className="input-group full-width">
-            <label><FaBed /> WHERE DO YOU WANT TO STAY?</label>
+            <label><FaBed /> WHERE DO YOU PREFER TO STAY?</label>
             <div className="hotel-tiers-grid">
               {HOTEL_TIERS.map((tier) => (
                 <button
@@ -186,8 +442,14 @@ function BudgetEstimator({ onBack }) {
                   onClick={() => setSelectedHotel(tier.id)}
                 >
                   <div className="hotel-tier-top">
-                    <strong>{tier.name}</strong>
-                    <span className="tier-price">₹{tier.ratePerNight}/night</span>
+                    <span className="tier-badge-icon">{tier.icon}</span>
+                    <div>
+                      <strong>{tier.name}</strong>
+                      <span className="tier-price">
+                        {curr.symbol}
+                        {Math.round(tier.ratePerNight * curr.rate).toLocaleString()}/night
+                      </span>
+                    </div>
                   </div>
                   <p>{tier.desc}</p>
                 </button>
@@ -197,32 +459,132 @@ function BudgetEstimator({ onBack }) {
 
           {/* TRANSPORT MODE SELECTION */}
           <div className="input-group full-width">
-            <label><FaTrain /> HOW DO YOU WANT TO TRAVEL?</label>
+            <label><FaTrain /> HOW WOULD YOU LIKE TO TRAVEL?</label>
             <div className="transport-modes-grid">
-              {TRANSPORT_MODES.map((mode) => (
+              {TRANSPORT_MODES.map((mode) => {
+                const Icon = mode.icon;
+                return (
+                  <button
+                    key={mode.id}
+                    className={`transport-mode-btn ${selectedTransport === mode.id ? "active" : ""}`}
+                    onClick={() => setSelectedTransport(mode.id)}
+                  >
+                    <Icon className="trans-btn-icon" />
+                    <strong>{mode.name}</strong>
+                    <span>
+                      ~{curr.symbol}
+                      {Math.round(mode.costPerPerson * curr.rate).toLocaleString()}/person
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* DINING PREFERENCES */}
+          <div className="input-group full-width">
+            <label><FaUtensils /> FOOD & DINING PREFERENCE</label>
+            <div className="food-tiers-grid">
+              {FOOD_TIERS.map((f) => (
                 <button
-                  key={mode.id}
-                  className={`transport-mode-btn ${selectedTransport === mode.id ? "active" : ""}`}
-                  onClick={() => setSelectedTransport(mode.id)}
+                  key={f.id}
+                  className={`food-tier-btn ${foodTier === f.id ? "active" : ""}`}
+                  onClick={() => setFoodTier(f.id)}
                 >
-                  <strong>{mode.name}</strong>
-                  <span>~₹{mode.costPerPerson}/person</span>
+                  <div className="food-tier-info">
+                    <strong>{f.label}</strong>
+                    <small>{f.desc}</small>
+                  </div>
+                  <span className="food-rate">
+                    {curr.symbol}
+                    {Math.round(f.costPerDay * curr.rate).toLocaleString()}/day
+                  </span>
                 </button>
               ))}
             </div>
           </div>
+
+          {/* GRANULAR SLIDERS (SIGHTSEEING, SHOPPING, LOCAL COMMUTE) */}
+          <div className="custom-sliders-row full-width">
+            <div className="slider-box">
+              <div className="slider-label-row">
+                <span><FaTicketAlt /> Entry Tickets & Darshan:</span>
+                <strong>{curr.symbol}{Math.round(sightseeingBudget * curr.rate)}/person</strong>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="2500"
+                step="50"
+                value={sightseeingBudget}
+                onChange={(e) => setSightseeingBudget(Number(e.target.value))}
+              />
+            </div>
+
+            <div className="slider-box">
+              <div className="slider-label-row">
+                <span><FaShoppingBag /> Local Crafts & Souvenirs:</span>
+                <strong>{curr.symbol}{Math.round(shoppingBudget * curr.rate)}/person</strong>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="5000"
+                step="100"
+                value={shoppingBudget}
+                onChange={(e) => setShoppingBudget(Number(e.target.value))}
+              />
+            </div>
+
+            <div className="slider-box">
+              <div className="slider-label-row">
+                <span><FaCar /> Daily Local Auto / Metro:</span>
+                <strong>{curr.symbol}{Math.round(localAutoDaily * curr.rate)}/day</strong>
+              </div>
+              <input
+                type="range"
+                min="100"
+                max="2000"
+                step="50"
+                value={localAutoDaily}
+                onChange={(e) => setLocalAutoDaily(Number(e.target.value))}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* RESULTS OVERVIEW & BREAKDOWN */}
+        {/* VIEW MODE SWITCHER TABS */}
+        <div className="view-mode-tabs">
+          <button
+            className={`view-tab ${viewMode === "breakdown" ? "active" : ""}`}
+            onClick={() => setViewMode("breakdown")}
+          >
+            <FaChartPie /> Cost Breakdown & Meters
+          </button>
+          <button
+            className={`view-tab ${viewMode === "compare" ? "active" : ""}`}
+            onClick={() => setViewMode("compare")}
+          >
+            <FaBalanceScale /> 3-Way Tier Comparison (Budget vs Lux)
+          </button>
+          <button
+            className={`view-tab ${viewMode === "cashflow" ? "active" : ""}`}
+            onClick={() => setViewMode("cashflow")}
+          >
+            <FaCalendarAlt /> Day-by-Day Estimated Cashflow
+          </button>
+        </div>
+
+        {/* RESULTS OVERVIEW & BREAKDOWN GRID */}
         <div className="budget-results-grid">
-          {/* TOTAL CARD */}
+          {/* TOTAL ESTIMATED CARD */}
           <motion.div
             className="total-summary-card"
             initial={{ scale: 0.98, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.3 }}
           >
-            <span className="summary-label">TOTAL ESTIMATED TRIP COST</span>
+            <div className="summary-top-tag">REAL-TIME ESTIMATED QUOTE</div>
             <h2 className="summary-amount">
               {curr.symbol}
               {grandTotalConverted.toLocaleString()}
@@ -230,58 +592,166 @@ function BudgetEstimator({ onBack }) {
             <p className="summary-subtext">
               For {travelers} traveler{travelers > 1 ? "s" : ""} · {days} days from {origin} to {destination}
             </p>
+
             <div className="per-person-badge">
-              {curr.symbol}
-              {perPersonConverted.toLocaleString()} per person
+              <span>{curr.symbol}{perPersonConverted.toLocaleString()}</span> per person
             </div>
 
-            <button
-              className="ai-optimize-btn"
-              onClick={handleGetSavingsTips}
-              disabled={loadingTips}
-            >
-              <FaLightbulb /> {loadingTips ? "Finding Money-Saving Tips..." : "Get Money-Saving Tips"}
-            </button>
+            <div className="quote-action-buttons">
+              <button
+                className="action-pill-btn copy"
+                onClick={handleCopySummary}
+              >
+                {copiedSummary ? <><FaCheck /> Copied Quote</> : <><FaCopy /> Copy Full Quote</>}
+              </button>
+
+              <button
+                className="action-pill-btn advice"
+                onClick={handleGetSavingsTips}
+                disabled={loadingTips}
+              >
+                <FaLightbulb /> {loadingTips ? "Finding Hacks..." : "AI Savings Hacks"}
+              </button>
+            </div>
           </motion.div>
 
-          {/* CATEGORY METERS */}
-          <div className="category-breakdown-card">
-            <h3>Detailed Cost Breakdown</h3>
-            <div className="categories-list">
-              {categories.map((cat, idx) => {
-                const Icon = cat.icon;
-                const convertedAmount = Math.round(cat.amount * curr.rate);
-                return (
-                  <div key={idx} className="category-item">
-                    <div className="category-item-top">
-                      <div className="category-name-group">
-                        <div className="cat-icon" style={{ background: `${cat.color}15`, color: cat.color }}>
-                          <Icon />
+          {/* VIEW 1: CATEGORY METERS */}
+          {viewMode === "breakdown" && (
+            <div className="category-breakdown-card">
+              <div className="breakdown-card-header">
+                <h3>Detailed Real-Time Cost Breakdown</h3>
+                <span className="live-pill">Live Recalculation</span>
+              </div>
+              <div className="categories-list">
+                {categories.map((cat, idx) => {
+                  const Icon = cat.icon;
+                  const convertedAmount = Math.round(cat.amount * curr.rate);
+                  return (
+                    <div key={idx} className="category-item">
+                      <div className="category-item-top">
+                        <div className="category-name-group">
+                          <div
+                            className="cat-icon"
+                            style={{ background: `${cat.color}18`, color: cat.color }}
+                          >
+                            <Icon />
+                          </div>
+                          <strong>{cat.name}</strong>
                         </div>
-                        <strong>{cat.name}</strong>
+                        <div className="category-item-val">
+                          <span>
+                            {curr.symbol}
+                            {convertedAmount.toLocaleString()}
+                          </span>
+                          <small>({cat.pct}%)</small>
+                        </div>
                       </div>
-                      <div className="category-item-val">
-                        <span>{curr.symbol}{convertedAmount.toLocaleString()}</span>
-                        <small>({cat.pct}%)</small>
+                      <div className="meter-track">
+                        <motion.div
+                          className="meter-fill"
+                          style={{ background: cat.color }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, Math.max(4, cat.pct))}%` }}
+                          transition={{ duration: 0.5, delay: idx * 0.04 }}
+                        />
                       </div>
                     </div>
-                    <div className="meter-track">
-                      <motion.div
-                        className="meter-fill"
-                        style={{ background: cat.color }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${cat.pct}%` }}
-                        transition={{ duration: 0.6, delay: idx * 0.08 }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* VIEW 2: 3-WAY SIDE-BY-SIDE TIER COMPARISON */}
+          {viewMode === "compare" && (
+            <div className="comparison-container-card">
+              <div className="breakdown-card-header">
+                <h3>Side-by-Side Budget Tier Comparison</h3>
+                <small>Updates live as you change days or travelers</small>
+              </div>
+              <div className="comparison-cards-grid">
+                {compareTiers.map((tier, idx) => {
+                  const convTotal = Math.round(tier.totalINR * curr.rate);
+                  const convPerPerson = Math.round(convTotal / travelers);
+                  return (
+                    <div
+                      key={idx}
+                      className={`compare-tier-card ${tier.isCurrent ? "active-plan" : ""}`}
+                      style={{ borderTop: `4px solid ${tier.color}` }}
+                    >
+                      <span className="tier-tag" style={{ color: tier.color }}>
+                        {tier.highlight}
+                      </span>
+                      <h4>{tier.title}</h4>
+
+                      <div className="tier-price-row">
+                        <strong>
+                          {curr.symbol}
+                          {convTotal.toLocaleString()}
+                        </strong>
+                        <small>{curr.symbol}{convPerPerson.toLocaleString()} /person</small>
+                      </div>
+
+                      <ul className="tier-features">
+                        <li>🏨 {tier.hotel}</li>
+                        <li>🚆 {tier.transport}</li>
+                        <li>🍲 {tier.food}</li>
+                      </ul>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* VIEW 3: DAY-BY-DAY CASHFLOW */}
+          {viewMode === "cashflow" && (
+            <div className="cashflow-timeline-card">
+              <div className="breakdown-card-header">
+                <h3>Estimated Day-by-Day Cashflow Plan</h3>
+                <small>Anticipated daily expenses for {days} days</small>
+              </div>
+              <div className="timeline-flow-list">
+                {Array.from({ length: days }).map((_, dIdx) => {
+                  const dayNum = dIdx + 1;
+                  const isFirstDay = dayNum === 1;
+                  const isLastDay = dayNum === days;
+                  const dayStay = hotelObj.ratePerNight * roomsCount;
+                  const dayFood = foodObj.costPerDay * travelers;
+                  const daySight = (sightseeingBudget / days) * travelers;
+                  const dayTransit = isFirstDay || isLastDay ? (transportTotal / 2) : localAutoDaily;
+                  const dayTotalINR = dayStay + dayFood + daySight + dayTransit;
+
+                  return (
+                    <div key={dayNum} className="cashflow-step">
+                      <div className="day-badge">Day {dayNum}</div>
+                      <div className="day-content">
+                        <strong>
+                          {isFirstDay
+                            ? "Departure, Station Transit & Hotel Check-in"
+                            : isLastDay
+                            ? "Final Sightseeing, Souvenirs & Return Journey"
+                            : "Full Day Sightseeing & Regional Cuisine"}
+                        </strong>
+                        <div className="day-chips">
+                          <span>🏨 Stay: {curr.symbol}{Math.round(dayStay * curr.rate)}</span>
+                          <span>🍲 Meals: {curr.symbol}{Math.round(dayFood * curr.rate)}</span>
+                          <span>🛺 Commute: {curr.symbol}{Math.round(dayTransit * curr.rate)}</span>
+                        </div>
+                      </div>
+                      <div className="day-cost-val">
+                        ~{curr.symbol}
+                        {Math.round(dayTotalINR * curr.rate).toLocaleString()}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* SAVINGS TIPS BOX */}
+        {/* AI SAVINGS HACKS BOX */}
         {savingTips && (
           <motion.div
             className="ai-financial-advice"
@@ -290,7 +760,7 @@ function BudgetEstimator({ onBack }) {
           >
             <div className="advice-header">
               <FaLightbulb style={{ color: "#f59e0b" }} />
-              <h3>Helpful Money-Saving Tips for Your Trip</h3>
+              <h3>Custom Money-Saving Hacks for {origin} ➔ {destination}</h3>
             </div>
             <pre className="advice-content">{savingTips}</pre>
           </motion.div>
