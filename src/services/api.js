@@ -38,7 +38,20 @@ function getDbPosts() {
     if (raw) {
       const posts = JSON.parse(raw);
       if (Array.isArray(posts) && posts.length > 0) {
-        return posts;
+        return posts.map((p) => ({
+          ...p,
+          category: p.category || "Scam Alert",
+          author: p.author || "Traveler",
+          avatar: p.avatar || (p.author ? p.author.substring(0, 2).toUpperCase() : "TR"),
+          title: p.title || "Travel Advisory",
+          content: p.content || p.description || "",
+          location: p.location || p.destination || "Local Area",
+          destination: p.destination || "General",
+          upvotes: p.upvotes !== undefined ? p.upvotes : (p.likes || 0),
+          likes: p.likes !== undefined ? p.likes : (p.upvotes || 0),
+          likedBy: Array.isArray(p.likedBy) ? p.likedBy : [],
+          comments: Array.isArray(p.comments) ? p.comments : [],
+        }));
       }
     }
   } catch (e) {}
@@ -264,19 +277,28 @@ export async function fetchCommunityPosts() {
 // ----------------------------------------------------
 export async function createCommunityPost(postData) {
   const newPost = {
+    ...postData,
     id: postData.id || `post-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-    title: postData.title || "",
-    description: postData.description || postData.content || "",
-    content: postData.content || postData.description || "",
+    title: (postData.title || "").trim(),
+    content: (postData.content || postData.description || "").trim(),
+    description: (postData.description || postData.content || "").trim(),
     author: postData.author || "Traveler",
+    avatar: postData.avatar || (postData.author ? postData.author.substring(0, 2).toUpperCase() : "TR"),
     destination: postData.destination || "General",
-    tags: postData.tags || ["Travel"],
-    likes: 0,
-    likedBy: [],
-    commentsCount: 0,
-    comments: [],
-    imageUrl: postData.imageUrl || "",
-    createdAt: new Date().toISOString(),
+    category: postData.category || "Scam Alert",
+    categoryIcon: postData.categoryIcon || "ALERT",
+    location: postData.location || `${postData.destination || "General"} Area`,
+    timestamp: postData.timestamp || "Just now",
+    upvotes: postData.upvotes !== undefined ? postData.upvotes : (postData.likes || 0),
+    likes: postData.likes !== undefined ? postData.likes : (postData.upvotes || 0),
+    likedBy: Array.isArray(postData.likedBy) ? postData.likedBy : [],
+    commentsCount: postData.commentsCount || (Array.isArray(postData.comments) ? postData.comments.length : 0),
+    comments: Array.isArray(postData.comments) ? postData.comments : [],
+    aiVerification: postData.aiVerification || null,
+    isHiddenGem: Boolean(postData.isHiddenGem),
+    imageUrl: postData.imageUrl || postData.image || "",
+    image: postData.image || postData.imageUrl || null,
+    createdAt: postData.createdAt || new Date().toISOString(),
   };
 
   // Save into in-app database
