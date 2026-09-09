@@ -34,6 +34,7 @@ function TravelMap({
   const mapInstanceRef = useRef(null);
   const tileLayerRef = useRef(null);
   const layersGroupRef = useRef(null);
+  const lastFittedRouteKeyRef = useRef("");
 
   const sLat = Number(sourceCoordinates?.lat) || 17.385;
   const sLng = Number(sourceCoordinates?.lng) || 78.4867;
@@ -53,8 +54,12 @@ function TravelMap({
     const map = L.map(mapContainerRef.current, {
       center: [(sLat + dLat) / 2, (sLng + dLng) / 2],
       zoom: 6,
+      minZoom: 2,
+      maxZoom: 19,
       zoomControl: false,
       scrollWheelZoom: true,
+      touchZoom: true,
+      doubleClickZoom: true,
       attributionControl: false,
     });
 
@@ -268,18 +273,22 @@ function TravelMap({
       }).addTo(layersGroup);
     }
 
-    // 5. Fit map viewport to encompass the full route and all markers
-    try {
-      const bounds = L.latLngBounds(boundsPoints);
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, {
-          padding: [45, 45],
-          maxZoom: 14,
-          animate: false,
-        });
+    // 5. Fit map viewport to encompass the full route ONLY when route initially loads or changes
+    const routeKey = `${sLat.toFixed(3)}_${sLng.toFixed(3)}_${dLat.toFixed(3)}_${dLng.toFixed(3)}_${sourceName}_${destinationName}`;
+    if (routeKey !== lastFittedRouteKeyRef.current) {
+      lastFittedRouteKeyRef.current = routeKey;
+      try {
+        const bounds = L.latLngBounds(boundsPoints);
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, {
+            padding: [45, 45],
+            maxZoom: 14,
+            animate: false,
+          });
+        }
+      } catch (e) {
+        console.warn("Fit bounds notice:", e);
       }
-    } catch (e) {
-      console.warn("Fit bounds notice:", e);
     }
   }, [
     sLat,
@@ -472,7 +481,11 @@ function TravelMap({
           <button
             type="button"
             className="floating-zoom-btn"
-            onClick={() => mapInstanceRef.current?.zoomIn()}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              mapInstanceRef.current?.zoomIn();
+            }}
             title="Zoom In"
           >
             <FaPlus />
@@ -480,7 +493,11 @@ function TravelMap({
           <button
             type="button"
             className="floating-zoom-btn"
-            onClick={() => mapInstanceRef.current?.zoomOut()}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              mapInstanceRef.current?.zoomOut();
+            }}
             title="Zoom Out"
           >
             <FaMinus />

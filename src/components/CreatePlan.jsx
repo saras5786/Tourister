@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaRoute,
@@ -245,8 +245,25 @@ Give 3 concise bullet points:
     (routeSummary && !routeSummary.roadRouteAvailable && !routeSummary.isLocal) ||
     (routeSummary && routeSummary.airDistanceKm > 1500);
 
-  const chosenAttractions = touristPlaces.filter((p) =>
-    selectedPlaceIds.includes(p.id)
+  const chosenAttractions = useMemo(
+    () => touristPlaces.filter((p) => selectedPlaceIds.includes(p.id)),
+    [touristPlaces, selectedPlaceIds]
+  );
+
+  const sourceCoordinates = useMemo(
+    () => ({
+      lat: sourceLocation?.latitude || 17.385,
+      lng: sourceLocation?.longitude || 78.4867,
+    }),
+    [sourceLocation?.latitude, sourceLocation?.longitude]
+  );
+
+  const destinationCoordinates = useMemo(
+    () => ({
+      lat: destinationLocation?.latitude || 16.9891,
+      lng: destinationLocation?.longitude || 82.2475,
+    }),
+    [destinationLocation?.latitude, destinationLocation?.longitude]
   );
 
   const destinationCommunityPosts = initialCommunityPosts.filter(
@@ -465,14 +482,8 @@ Give 3 concise bullet points:
             <TravelMap
               destinationName={destination}
               sourceName={source}
-              sourceCoordinates={{
-                lat: sourceLocation?.latitude || 17.385,
-                lng: sourceLocation?.longitude || 78.4867,
-              }}
-              destinationCoordinates={{
-                lat: destinationLocation?.latitude || 16.9891,
-                lng: destinationLocation?.longitude || 82.2475,
-              }}
+              sourceCoordinates={sourceCoordinates}
+              destinationCoordinates={destinationCoordinates}
               touristPlaces={chosenAttractions.length > 0 ? chosenAttractions : touristPlaces}
               routeCoordinates={routeSummary?.routeCoordinates || []}
               routeSummary={routeSummary}
