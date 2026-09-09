@@ -11,6 +11,9 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
     "@heyputer/puter.js": "^2.6.2",
     "@vitejs/plugin-react": "^6.1.0",
