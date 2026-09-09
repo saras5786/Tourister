@@ -4,7 +4,7 @@
       "id": "usr-default-saras",
       "username": "saraschandra",
       "email": "saraschandra5786@gmail.com",
-      "password_hash": "password123",
+      "password_hash": "17396319b9b42367b426805dd1fc537d:86376511980a402010601f56ad0ce6b1bef00b6fcfcf1c4f82f753a1c67c49911b661ac305ddec02a13bbcb5ce8a0692bafc6f33d560f1615e7ade9f64a4f6a5",
       "user_points": 300,
       "wallet_balance": 2500,
       "created_at": "2026-09-08T05:34:26.204Z"
@@ -26,8 +26,214 @@
       "user_points": 300,
       "wallet_balance": 2500,
       "created_at": "2026-09-08T05:34:26.211Z"
+    },
+    {
+      "id": "usr-1788858687228-k3n4s",
+      "username": "vite_test_user_1788858687205",
+      "email": "vitetest1788858687205@test.com",
+      "password_hash": "b067116b8e65865d210db32a59d89e04:0836ac241cd29d6fe0a38f005523b74d96a93fcad9fe8027b7bc083fa25033a7e4327c8486804e0b3a5b0f32e95fc7ed1afc716703d85235cb1f75017dd3d712",
+      "user_points": 300,
+      "wallet_balance": 2500,
+      "created_at": "2026-09-08T09:11:27.230Z"
+    },
+    {
+      "id": "usr-1788861921909-46cz8",
+      "username": "user_browser_1",
+      "email": "u1@test.com",
+      "password_hash": "b134b00649973372d1b400bac890cb86:ad70ba55ad06efa6e6c2d202e9400cbdd396c38d4dd1d07a8bc700917293a60ab50ba40af75b27115976c1ed7b14c6dde6a28d165e0c8d9f24464ab4d809844a",
+      "user_points": 300,
+      "wallet_balance": 2500,
+      "created_at": "2026-09-08T10:05:21.911Z"
+    },
+    {
+      "id": "usr-1788862145753-h985a",
+      "username": "tourister_user_one",
+      "email": "u1@tourister.io",
+      "password_hash": "f7aef3148b5fb9513127881dfcc8aedb:90e7263b2103c85a0f7dd08c1008fd499e3326a93bb874a81190348a54e5a87a7adc19e6c71898100a0fab7297f15a418059418bf9ca670684a1793a1f286caa",
+      "user_points": 300,
+      "wallet_balance": 2500,
+      "created_at": "2026-09-08T10:09:05.754Z"
+    },
+    {
+      "id": "usr-1788930917427-ojm6d",
+      "username": "user_a_1788930917318",
+      "email": "user_a_1788930917318@tourister.io",
+      "password_hash": "0128bfbdf2c01c321b1ee6348823d8a6:80983e189b513cfd4a1f4368cd3200de1e0fe7069632b66ed3fc09df265b5049a9d7fbf7f00853494735892367ba192114bf5b780ee7b81e91bcee1ab45b946b",
+      "user_points": 300,
+      "wallet_balance": 2500,
+      "created_at": "2026-09-09T05:15:17.428Z"
+    },
+    {
+      "id": "usr-1788930917468-fcdsf",
+      "username": "user_b_1788930917318",
+      "email": "user_b_1788930917318@tourister.io",
+      "password_hash": "75fd2b467bf92c03de7b62cd473692dc:06fb2a495457f020bcf31abf24c41559c1625588f71e2a869a08372667db33271ca9a3b450c0810b6a1fff1bdae4bfea4911c9aa8884939b8fdc0497575248e6",
+      "user_points": 300,
+      "wallet_balance": 2500,
+      "created_at": "2026-09-09T05:15:17.469Z"
+    },
+    {
+      "id": "usr-1788933735596-8cmgo",
+      "username": "user_a_1788933735504",
+      "email": "user_a_1788933735504@tourister.io",
+      "password_hash": "ae305535c6d9305c3d916d93855747f7:ea96ce842210efcf960563d45581bde036a557e9af37a6307a52d1e403305946262eb387706aafcacc01fa065c12920ad16e7f617d4710e24d5b8c7c3a7305b4",
+      "user_points": 300,
+      "wallet_balance": 2500,
+      "created_at": "2026-09-09T06:02:15.598Z"
+    },
+    {
+      "id": "usr-1788933735643-aa0pa",
+      "username": "user_b_1788933735504",
+      "email": "user_b_1788933735504@tourister.io",
+      "password_hash": "4f8c013bc2ce35bfca38ae30a6e24197:a4b2ca15b45c4a6d0c4a02c4ec38e8528adf6609836c3a763998ddcf323e66b7f6c38920cee0547db1db5bb920cd515fb66caa13f5bf696257597081775ab5cc",
+      "user_points": 300,
+      "wallet_balance": 2500,
+      "created_at": "2026-09-09T06:02:15.644Z"
     }
   ],
   "saved_plans": [],
-  "community_posts": []
+  "community_posts": [
+    {
+      "id": "post-1788933735662-t8h4m",
+      "author": "user_b_1788933735504",
+      "avatar": "US",
+      "authorTier": "Active Contributor",
+      "destination": "Hyderabad",
+      "category": "Hidden Gem",
+      "categoryIcon": "ALERT",
+      "title": "Exploring Hyderabad this weekend!",
+      "content": "Visit Golconda fort for sunset, then head to Nayab hotel for authentic Irani chai and Osmania biscuits.",
+      "location": "Charminar Old City",
+      "image": null,
+      "timestamp": "Just now",
+      "upvotes": 0,
+      "likedBy": [],
+      "commentsCount": 0,
+      "comments": [],
+      "aiVerification": null,
+      "isHiddenGem": false,
+      "createdAt": "2026-09-09T06:02:15.662Z"
+    },
+    {
+      "id": "post-1788933735630-ez5lg",
+      "author": "user_a_1788933735504",
+      "avatar": "US",
+      "authorTier": "Active Contributor",
+      "destination": "Kerala",
+      "category": "Travel Hack",
+      "categoryIcon": "ALERT",
+      "title": "Best places to visit in Kerala!",
+      "content": "Explore Alleppey backwaters early at 6 AM and take the state ferry for just ₹25 instead of private houseboats.",
+      "location": "Alleppey Backwaters Jetty",
+      "image": null,
+      "timestamp": "Just now",
+      "upvotes": 1,
+      "likedBy": [
+        "user_b_1788933735504"
+      ],
+      "commentsCount": 1,
+      "comments": [
+        {
+          "id": "cmt-1788933735731-bo2i",
+          "author": "user_b_1788933735504",
+          "avatar": "US",
+          "text": "Great tip! Also recommend trying the karimeen pollichathu near the boat jetty.",
+          "createdAt": "2026-09-09T06:02:15.731Z"
+        }
+      ],
+      "aiVerification": null,
+      "isHiddenGem": false,
+      "createdAt": "2026-09-09T06:02:15.630Z"
+    },
+    {
+      "id": "post-1788930917486-35gbs",
+      "author": "user_b_1788930917318",
+      "avatar": "US",
+      "authorTier": "Active Contributor",
+      "destination": "Hyderabad",
+      "category": "Hidden Gem",
+      "categoryIcon": "ALERT",
+      "title": "Exploring Hyderabad this weekend!",
+      "content": "Visit Golconda fort for sunset, then head to Nayab hotel for authentic Irani chai and Osmania biscuits.",
+      "location": "Charminar Old City",
+      "image": null,
+      "timestamp": "Just now",
+      "upvotes": 0,
+      "likedBy": [],
+      "commentsCount": 0,
+      "comments": [],
+      "aiVerification": null,
+      "isHiddenGem": false,
+      "createdAt": "2026-09-09T05:15:17.486Z"
+    },
+    {
+      "id": "post-1788930917457-rxeqd",
+      "author": "user_a_1788930917318",
+      "avatar": "US",
+      "authorTier": "Active Contributor",
+      "destination": "Kerala",
+      "category": "Travel Hack",
+      "categoryIcon": "ALERT",
+      "title": "Best places to visit in Kerala!",
+      "content": "Explore Alleppey backwaters early at 6 AM and take the state ferry for just ₹25 instead of private houseboats.",
+      "location": "Alleppey Backwaters Jetty",
+      "image": null,
+      "timestamp": "Just now",
+      "upvotes": 1,
+      "likedBy": [
+        "user_b_1788930917318"
+      ],
+      "commentsCount": 1,
+      "comments": [
+        {
+          "id": "cmt-1788930917543-u61t",
+          "author": "user_b_1788930917318",
+          "avatar": "US",
+          "text": "Great tip! Also recommend trying the karimeen pollichathu near the boat jetty.",
+          "createdAt": "2026-09-09T05:15:17.543Z"
+        }
+      ],
+      "aiVerification": null,
+      "isHiddenGem": false,
+      "createdAt": "2026-09-09T05:15:17.457Z"
+    },
+    {
+      "id": "post-1788862145791-ejrsd",
+      "author": "tourister_user_one",
+      "avatar": "TO",
+      "authorTier": "Active Contributor",
+      "destination": "Visakhapatnam",
+      "category": "Scam Alert",
+      "categoryIcon": "ALERT",
+      "title": "Watch out for unregulated water sports at Rishikonda",
+      "content": "Make sure to only buy tickets at the official APTDC booth near the hill slope.",
+      "location": "Rishikonda Beach",
+      "image": null,
+      "timestamp": "Just now",
+      "upvotes": 4,
+      "commentsCount": 0,
+      "aiVerification": null,
+      "isHiddenGem": false,
+      "createdAt": "2026-09-08T10:09:05.791Z"
+    },
+    {
+      "id": "post-1788861921948-uwr6f",
+      "author": "user_browser_1",
+      "avatar": "US",
+      "authorTier": "Active Contributor",
+      "destination": "Goa",
+      "category": "Travel Tip",
+      "categoryIcon": "ALERT",
+      "title": "Real post from Device A",
+      "content": "Testing cross-device post delivery",
+      "location": "Goa Area",
+      "image": null,
+      "timestamp": "Just now",
+      "upvotes": 1,
+      "commentsCount": 0,
+      "aiVerification": null,
+      "isHiddenGem": false,
+      "createdAt": "2026-09-08T10:05:21.948Z"
+    }
+  ]
 }

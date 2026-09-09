@@ -399,7 +399,7 @@ Give 3 concise bullet points:
                     {routeSummary.isLocal
                       ? "Local City Exploration"
                       : routeSummary.roadDistanceKm !== null
-                      ? `${routeSummary.roadDistanceKm} km (~${routeSummary.drivingDurationText})`
+                      ? `${routeSummary.roadDistanceKm} km (${routeSummary.roadDistanceMiles} mi) · ~${routeSummary.drivingDurationText}`
                       : "Live road route unavailable"}
                   </strong>
                 </div>
@@ -407,21 +407,25 @@ Give 3 concise bullet points:
                 {/* 2. AIR DISTANCE */}
                 <div className="matrix-stat-col">
                   <span>
-                    <FaPlane /> AIR DISTANCE
+                    <FaPlane /> AIR / FLIGHT
                   </span>
                   <strong>
                     {routeSummary.isLocal
                       ? "Not applicable (Local)"
-                      : `${routeSummary.airDistanceKm} km`}
+                      : `${routeSummary.airDistanceKm} km (${routeSummary.airDistanceMiles} mi) · ~${routeSummary.flightDurationText}`}
                   </strong>
                 </div>
 
                 {/* 3. TRAIN */}
                 <div className="matrix-stat-col">
                   <span>
-                    <FaTrain /> TRAIN
+                    <FaTrain /> TRAIN TRANSIT
                   </span>
-                  <strong>{routeSummary.trainInfo}</strong>
+                  <strong>
+                    {routeSummary.isLocal
+                      ? "Local Metro / Suburban"
+                      : routeSummary.trainInfo}
+                  </strong>
                 </div>
 
                 {/* 4. BUS / ROAD */}
@@ -429,7 +433,11 @@ Give 3 concise bullet points:
                   <span>
                     <FaBus /> BUS TRANSIT
                   </span>
-                  <strong>{routeSummary.busInfo}</strong>
+                  <strong>
+                    {routeSummary.isLocal
+                      ? "Local City Bus"
+                      : routeSummary.busInfo}
+                  </strong>
                 </div>
 
                 {/* 5. CO2 FOOTPRINT */}
@@ -453,7 +461,7 @@ Give 3 concise bullet points:
               </div>
             )}
 
-            {/* REAL COORDINATE SATELLITE MAP */}
+            {/* REAL COORDINATE SATELLITE & ROUTE MAP */}
             <TravelMap
               destinationName={destination}
               sourceName={source}
@@ -465,7 +473,10 @@ Give 3 concise bullet points:
                 lat: destinationLocation?.latitude || 16.9891,
                 lng: destinationLocation?.longitude || 82.2475,
               }}
-              touristPlaces={touristPlaces}
+              touristPlaces={chosenAttractions.length > 0 ? chosenAttractions : touristPlaces}
+              routeCoordinates={routeSummary?.routeCoordinates || []}
+              routeSummary={routeSummary}
+              isFlightRoute={!routeSummary?.roadRouteAvailable && !routeSummary?.isLocal}
             />
 
             {/* DIRECT 1-CLICK EXTERNAL BOOKING LINKS */}

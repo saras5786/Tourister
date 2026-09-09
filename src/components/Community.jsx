@@ -19,33 +19,33 @@ import {
   FaSyncAlt,
 } from "react-icons/fa";
 import { initialCommunityPosts, evaluatePostWithAI } from "../data/communityPosts";
-import { fetchCommunityPosts, createCommunityPost } from "../services/api";
+import {
+  fetchCommunityPosts,
+  createCommunityPost,
+  togglePostLike,
+  addPostComment,
+  deleteCommunityPost,
+} from "../services/api";
 import destinationsList from "../data/destinations";
 import "./Community.css";
 
 function Community({ onBack, onOpenGem, username = "Tourister" }) {
-  const [posts, setPosts] = useState(() => {
-    const saved = localStorage.getItem("tourister_community_posts");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return initialCommunityPosts;
-  });
+  const [posts, setPosts] = useState(() => initialCommunityPosts);
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncNotice, setSyncNotice] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [likedPosts, setLikedPosts] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [generatingAIPost, setGeneratingAIPost] = useState(false);
   const [targetAIDestination, setTargetAIDestination] = useState("");
   const [scoutNotif, setScoutNotif] = useState("");
+
+  // Social feed interactive states
+  const [expandedCommentPostId, setExpandedCommentPostId] = useState(null);
+  const [commentInput, setCommentInput] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [isPublishingPost, setIsPublishingPost] = useState(false);
 
   // Post form state
   const [formTitle, setFormTitle] = useState("");
@@ -56,31 +56,32 @@ function Community({ onBack, onOpenGem, username = "Tourister" }) {
   const [formIsHiddenGem, setFormIsHiddenGem] = useState(false);
   const [draftingAI, setDraftingAI] = useState(false);
 
-  // Sync Community Posts across all users and accounts
+  // Sync Community Posts across all users and accounts from shared database
   const loadCommunityPosts = useCallback(async (showNotice = false) => {
     setIsSyncing(true);
     try {
       const fetched = await fetchCommunityPosts();
-      if (Array.isArray(fetched) && fetched.length > 0) {
-        const postMap = new Map();
-        // Base guide recommendations
-        initialCommunityPosts.forEach((p) => p && p.id && postMap.set(p.id, p));
-        // Server + Cloud live posts
-        fetched.forEach((p) => p && p.id && postMap.set(p.id, p));
+      if (Array.isArray(fetched)) {
+        setPosts((prevPosts) => {
+          const postMap = new Map();
+          // Base guide recommendations
+          initialCommunityPosts.forEach((p) => p && p.id && postMap.set(p.id, p));
+          // Server live posts (shared persistent database)
+          fetched.forEach((p) => p && p.id && postMap.set(p.id, p));
 
-        const getPostTime = (p) => {
-          if (p.createdAt) return new Date(p.createdAt).getTime();
-          if (p.created_at) return new Date(p.created_at).getTime();
-          const match = String(p.id).match(/\d{10,}/);
-          if (match) return parseInt(match[0], 10);
-          return 0;
-        };
+          const getPostTime = (p) => {
+            if (p.createdAt) return new Date(p.createdAt).getTime();
+            if (p.created_at) return new Date(p.created_at).getTime();
+            const match = String(p.id).match(/\d{10,}/);
+            if (match) return parseInt(match[0], 10);
+            return 0;
+          };
 
-        const sorted = Array.from(postMap.values()).sort(
-          (a, b) => getPostTime(b) - getPostTime(a)
-        );
+          return Array.from(postMap.values()).sort(
+            (a, b) => getPostTime(b) - getPostTime(a)
+          );
+        });
 
-        setPosts(sorted);
         if (showNotice) {
           setSyncNotice("Live feed updated with latest traveler reports!");
           setTimeout(() => setSyncNotice(""), 4000);
@@ -93,7 +94,7 @@ function Community({ onBack, onOpenGem, username = "Tourister" }) {
     }
   }, []);
 
-  // Fetch immediately on mount, on window focus, and periodically
+  // Fetch immediately on mount, on window focus, and periodically every 3 seconds
   useEffect(() => {
     loadCommunityPosts(false);
 
@@ -102,7 +103,7 @@ function Community({ onBack, onOpenGem, username = "Tourister" }) {
 
     const interval = setInterval(() => {
       loadCommunityPosts(false);
-    }, 12000);
+    }, 3000);
 
     return () => {
       window.removeEventListener("focus", handleFocus);
@@ -110,10 +111,6 @@ function Community({ onBack, onOpenGem, username = "Tourister" }) {
     };
   }, [loadCommunityPosts]);
 
-  // Persist posts locally
-  useEffect(() => {
-    localStorage.setItem("tourister_community_posts", JSON.stringify(posts));
-  }, [posts]);
 
   // Helper to parse AI outputs
   const parseAIStory = (rawText, dest) => {
@@ -289,17 +286,98 @@ STORY: [2 sentences with real details]`;
     }
   };
 
-  const handleLike = (postId) => {
-    if (likedPosts.includes(postId)) {
-      setLikedPosts(likedPosts.filter((id) => id !== postId));
-      setPosts(
-        posts.map((p) => (p.id === postId ? { ...p, upvotes: p.upvotes - 1 } : p))
-      );
-    } else {
-      setLikedPosts([...likedPosts, postId]);
-      setPosts(
-        posts.map((p) => (p.id === postId ? { ...p, upvotes: p.upvotes + 1 } : p))
-      );
+  // Like / Upvote post - shared across all devices and users
+  const handleLike = async (postId) => {
+    const activeAuthor = getActiveAuthorName();
+    // Optimistic UI update
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const likedBy = Array.isArray(p.likedBy) ? [...p.likedBy] : [];
+        const isLiked = likedBy.some((u) => u.toLowerCase() === activeAuthor.toLowerCase());
+        const updatedLikedBy = isLiked
+          ? likedBy.filter((u) => u.toLowerCase() !== activeAuthor.toLowerCase())
+          : [...likedBy, activeAuthor];
+        const updatedUpvotes = isLiked
+          ? Math.max(0, (p.upvotes || 1) - 1)
+          : (p.upvotes || 0) + 1;
+        return {
+          ...p,
+          likedBy: updatedLikedBy,
+          upvotes: updatedUpvotes,
+        };
+      })
+    );
+
+    try {
+      const res = await togglePostLike(postId, activeAuthor);
+      if (res && res.success) {
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.id === postId
+              ? { ...p, upvotes: res.upvotes, likedBy: res.likedBy }
+              : p
+          )
+        );
+      }
+    } catch (err) {
+      console.warn("Could not sync like to server:", err);
+    }
+  };
+
+  // Add Comment - shared across all devices and users
+  const handleAddCommentSubmit = async (e, postId) => {
+    e.preventDefault();
+    if (!commentInput.trim() || isSubmittingComment) return;
+
+    const activeAuthor = getActiveAuthorName();
+    const commentText = commentInput.trim();
+    setCommentInput("");
+    setIsSubmittingComment(true);
+
+    const tempComment = {
+      id: `cmt-temp-${Date.now()}`,
+      author: activeAuthor,
+      avatar: activeAuthor.substring(0, 2).toUpperCase(),
+      text: commentText,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Optimistically show comment
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const currentComments = Array.isArray(p.comments) ? p.comments : [];
+        const updatedComments = [...currentComments, tempComment];
+        return {
+          ...p,
+          comments: updatedComments,
+          commentsCount: updatedComments.length,
+        };
+      })
+    );
+
+    try {
+      const res = await addPostComment(postId, { author: activeAuthor, text: commentText });
+      if (res && res.success && res.comment) {
+        setPosts((prev) =>
+          prev.map((p) => {
+            if (p.id !== postId) return p;
+            const comments = (p.comments || []).map((c) =>
+              c.id === tempComment.id ? res.comment : c
+            );
+            return {
+              ...p,
+              comments,
+              commentsCount: res.commentsCount || comments.length,
+            };
+          })
+        );
+      }
+    } catch (err) {
+      console.warn("Could not post comment to server:", err);
+    } finally {
+      setIsSubmittingComment(false);
     }
   };
 
@@ -313,13 +391,16 @@ STORY: [2 sentences with real details]`;
         if (u?.username) return u.username;
       }
     } catch (e) {}
-    return username || "sarath5786";
+    return (username && username !== "Tourister") ? username : "Explorer";
   };
 
+  // Publish Post - immediately saves to shared persistent backend
   const handlePublishPost = async (e) => {
     e.preventDefault();
-    if (!formTitle.trim() || !formContent.trim()) return;
+    if (!formTitle.trim() || !formContent.trim() || isPublishingPost) return;
+    setIsPublishingPost(true);
 
+    const activeAuthor = getActiveAuthorName();
     const evaluation = await evaluatePostWithAI({
       title: formTitle,
       content: formContent,
@@ -327,7 +408,6 @@ STORY: [2 sentences with real details]`;
       category: formCategory,
     });
 
-    const activeAuthor = getActiveAuthorName();
     const newPost = {
       id: `user-post-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       author: activeAuthor,
@@ -341,12 +421,14 @@ STORY: [2 sentences with real details]`;
           : formCategory === "Travel Hack"
           ? "HACK"
           : "ALERT",
-      title: formTitle,
-      content: formContent,
-      location: formLocation || `${formDestination} District`,
+      title: formTitle.trim(),
+      content: formContent.trim(),
+      location: formLocation.trim() || `${formDestination} District`,
       timestamp: "Just now",
-      upvotes: 1,
+      upvotes: 0,
+      likedBy: [],
       commentsCount: 0,
+      comments: [],
       aiVerification: evaluation,
       isHiddenGem: formIsHiddenGem,
       createdAt: new Date().toISOString(),
@@ -360,12 +442,18 @@ STORY: [2 sentences with real details]`;
     setFormIsHiddenGem(false);
 
     try {
-      await createCommunityPost(newPost);
-      setScoutNotif(`🎉 Your post was published by @${activeAuthor} and synced with all travelers!`);
+      const res = await createCommunityPost(newPost);
+      if (res && res.success) {
+        setScoutNotif(`🎉 Post published by @${activeAuthor} and saved to shared community feed!`);
+      } else {
+        setScoutNotif(`⚠️ Post saved locally. Server status: ${res?.error || "Offline"}`);
+      }
       setTimeout(() => setScoutNotif(""), 6000);
       loadCommunityPosts(false);
     } catch (err) {
       console.warn("Post sync error:", err);
+    } finally {
+      setIsPublishingPost(false);
     }
   };
 
@@ -572,16 +660,36 @@ STORY: [2 sentences with real details]`;
                 {/* POST FOOTER */}
                 <div className="post-footer">
                   <button
-                    className={`upvote-btn ${likedPosts.includes(post.id) ? "liked" : ""}`}
+                    className={`upvote-btn ${
+                      post.likedBy &&
+                      Array.isArray(post.likedBy) &&
+                      post.likedBy.some(
+                        (u) => u.toLowerCase() === getActiveAuthorName().toLowerCase()
+                      )
+                        ? "liked"
+                        : ""
+                    }`}
                     onClick={() => handleLike(post.id)}
+                    title="Helpful / Like this report"
                   >
                     <FaThumbsUp />
-                    <span>{post.upvotes} Helpful</span>
+                    <span>{post.upvotes !== undefined ? post.upvotes : 0} Helpful</span>
                   </button>
 
-                  <span className="comments-tag">
-                    <FaCommentDots /> {post.commentsCount} comments
-                  </span>
+                  <button
+                    className="comments-btn"
+                    onClick={() =>
+                      setExpandedCommentPostId(
+                        expandedCommentPostId === post.id ? null : post.id
+                      )
+                    }
+                    title="View & add traveler comments"
+                  >
+                    <FaCommentDots />{" "}
+                    {post.commentsCount ||
+                      (Array.isArray(post.comments) ? post.comments.length : 0)}{" "}
+                    comments
+                  </button>
 
                   {post.isHiddenGem && (
                     <button
@@ -592,6 +700,55 @@ STORY: [2 sentences with real details]`;
                     </button>
                   )}
                 </div>
+
+                {/* INLINE EXPANDABLE COMMENTS DRAWER */}
+                {expandedCommentPostId === post.id && (
+                  <div className="comments-section">
+                    <div className="comments-list">
+                      {Array.isArray(post.comments) && post.comments.length > 0 ? (
+                        post.comments.map((c, cIdx) => (
+                          <div key={c.id || cIdx} className="comment-bubble">
+                            <div className="comment-header">
+                              <span className="comment-author">@{c.author}</span>
+                              <span className="comment-time">
+                                {c.createdAt
+                                  ? new Date(c.createdAt).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })
+                                  : "Just now"}
+                              </span>
+                            </div>
+                            <p className="comment-text">{c.text}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="no-comments-text">
+                          No comments yet. Share your experience or tip below!
+                        </p>
+                      )}
+                    </div>
+                    <form
+                      className="comment-input-row"
+                      onSubmit={(e) => handleAddCommentSubmit(e, post.id)}
+                    >
+                      <input
+                        type="text"
+                        placeholder={`Comment as @${getActiveAuthorName()}...`}
+                        value={commentInput}
+                        onChange={(e) => setCommentInput(e.target.value)}
+                        required
+                      />
+                      <button
+                        type="submit"
+                        disabled={isSubmittingComment}
+                        className="comment-submit-btn"
+                      >
+                        {isSubmittingComment ? "..." : "Post"}
+                      </button>
+                    </form>
+                  </div>
+                )}
               </motion.article>
             ))}
           </div>

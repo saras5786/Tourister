@@ -145,11 +145,15 @@ Location: ${postData.location}
 Category: ${postData.category}
 Provide a brief 1-sentence verification assessment and a credibility score between 90-100.`;
 
-    const response = await puter.ai.chat(
+    const chatPromise = puter.ai.chat(
       [{ role: "user", content: prompt }],
       { model: "openai/gpt-5.6-luna", reasoning_effort: "low" }
     );
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("AI evaluation timeout")), 1500)
+    );
 
+    const response = await Promise.race([chatPromise, timeoutPromise]);
     const reply = response?.message?.content || response?.text;
 
     return {
@@ -159,7 +163,6 @@ Provide a brief 1-sentence verification assessment and a credibility score betwe
       riskLevel: postData.category === "Scam Alert" ? "Tourist Alert" : "Safe & Verified",
     };
   } catch (e) {
-    console.warn("Evaluation fallback:", e);
     return {
       status: "Verified Traveler Report",
       credibilityScore: 97,

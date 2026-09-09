@@ -257,7 +257,41 @@ function LocationAutocomplete({
           }
         }
 
-        // 3. Fallback to matching curated cities if external APIs return empty
+        // 3. OpenStreetMap Nominatim Geocoding fallback
+        if (results.length === 0 && !abortController.signal.aborted) {
+          try {
+            const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+              normalizedQuery
+            )}&limit=8&addressdetails=1`;
+            const res = await fetch(nominatimUrl, {
+              signal: abortController.signal,
+              headers: { "User-Agent": "TouristerApp/1.0" },
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (Array.isArray(data) && data.length > 0) {
+                results = data.map((item) => {
+                  const placeName =
+                    item.name || item.display_name.split(",")[0];
+                  return {
+                    name: placeName,
+                    fullAddress: item.display_name,
+                    latitude: parseFloat(item.lat),
+                    longitude: parseFloat(item.lon),
+                    placeId: item.osm_id ? `nom-${item.osm_id}` : `nom-${Math.random()}`,
+                    type: item.type || "place",
+                  };
+                });
+              }
+            }
+          } catch (e) {
+            if (e.name !== "AbortError") {
+              console.warn("Nominatim fallback notice:", e);
+            }
+          }
+        }
+
+        // 4. Fallback to matching curated cities if external APIs return empty
         if (results.length === 0 && !abortController.signal.aborted) {
           results = DEFAULT_POPULAR_PLACES.filter(
             (p) =>

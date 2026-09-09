@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import pg from "pg";
 import {
   handleAuthSignup,
@@ -8,11 +11,21 @@ import {
   handleUpdateUser,
   handleSavePlan,
   handleGetPlans,
+  handleGetPosts,
+  handleCreatePost,
+  handleToggleLike,
+  handleAddComment,
+  handleDeletePost,
+  hashPassword,
+  verifyPassword,
   readDb,
   writeDb,
 } from "./server/dbHelper.js";
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const { Pool } = pg;
 const app = express();
@@ -32,7 +45,6 @@ const pool = new Pool({
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
   connectionTimeoutMillis: 2000,
 });
-
 
 // Auto-initialize tables if PostgreSQL is running
 async function initDatabase() {
@@ -84,7 +96,7 @@ async function initDatabase() {
       );
 
       INSERT INTO users (username, email, password_hash, user_points, wallet_balance)
-      VALUES ('saraschandra', 'saraschandra5786@gmail.com', 'password123', 300, 2500.00)
+      VALUES ('saraschandra', 'saraschandra5786@gmail.com', '${hashPassword("password123", "seed_salt_saras1")}', 300, 2500.00)
       ON CONFLICT (username) DO NOTHING;
     `);
 
@@ -130,7 +142,7 @@ app.post("/api/auth/signup", async (req, res) => {
       `INSERT INTO users (username, email, password_hash, user_points, wallet_balance)
        VALUES ($1, $2, $3, 300, 2500.00)
        RETURNING id, username, email, user_points, wallet_balance`,
-      [username.trim(), email.trim().toLowerCase(), password]
+      [username.trim(), email.trim().toLowerCase(), hashPassword(password)]
     );
     res.status(201).json({ success: true, user: result.rows[0] });
   } catch (err) {
@@ -158,11 +170,11 @@ app.post("/api/auth/login", async (req, res) => {
     const result = await pool.query(
       `SELECT id, username, email, password_hash, user_points, wallet_balance 
        FROM users 
-       WHERE username = $1 OR email = $1`,
-      [username.trim()]
+       WHERE LOWER(username) = $1 OR LOWER(email) = $1`,
+      [username.trim().toLowerCase()]
     );
 
-    if (result.rows.length === 0 || result.rows[0].password_hash !== password) {
+    if (result.rows.length === 0 || !verifyPassword(password, result.rows[0].password_hash)) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
 
@@ -200,7 +212,7 @@ app.put("/api/auth/user/:username", async (req, res) => {
     }
     if (newPassword) {
       updates.push(`password_hash = $${idx++}`);
-      values.push(newPassword);
+      values.push(hashPassword(newPassword));
     }
 
     if (updates.length === 0) {
@@ -296,41 +308,36 @@ app.get("/api/plans/:username", async (req, res) => {
   }
 });
 
-// 7. Community: Fetch Posts
-app.get("/api/posts", async (req, res) => {
+// 7. Community: Fetch Posts (supports both /api/community/posts and legacy /api/posts)
+const fetchPostsHandler = async (req, res) => {
   if (!isPgConnected) {
-    const db = readDb();
-    return res.json({ success: true, posts: db.community_posts || [] });
+    const result = handleGetPosts();
+    return res.status(result.status).json(result.data);
   }
 
   try {
     const result = await pool.query(
-      `SELECT * FROM community_posts ORDER BY created_at DESC LIMIT 50`
+      `SELECT * FROM community_posts ORDER BY created_at DESC LIMIT 100`
     );
     res.json({ success: true, posts: result.rows });
   } catch (err) {
-    const db = readDb();
-    res.json({ success: true, posts: db.community_posts || [] });
+    const fallback = handleGetPosts();
+    res.status(fallback.status).json(fallback.data);
   }
-});
+};
+app.get("/api/community/posts", fetchPostsHandler);
+app.get("/api/posts", fetchPostsHandler);
 
 // 8. Community: Create Post
-app.post("/api/posts", async (req, res) => {
+const createPostHandler = async (req, res) => {
   if (!isPgConnected) {
-    const db = readDb();
-    const newPost = {
-      id: req.body.id || `post-${Date.now()}`,
-      ...req.body,
-      created_at: req.body.createdAt || new Date().toISOString(),
-    };
-    if (!db.community_posts) db.community_posts = [];
-    db.community_posts = db.community_posts.filter((p) => p.id !== newPost.id);
-    db.community_posts.unshift(newPost);
-    writeDb(db);
-    return res.status(201).json({ success: true, post: newPost });
+    const result = handleCreatePost(req.body);
+    return res.status(result.status).json(result.data);
   }
 
   const {
+    id,
+    author,
     authorName,
     authorTier,
     destination,
@@ -338,46 +345,83 @@ app.post("/api/posts", async (req, res) => {
     title,
     content,
     location,
+    image,
     imageUrl,
+    upvotes,
+    commentsCount,
     aiVerification,
   } = req.body;
 
   try {
     const result = await pool.query(
       `INSERT INTO community_posts 
-       (author_name, author_tier, destination, category, title, content, location, image_url, ai_verification)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       (author_name, author_tier, destination, category, title, content, location, image_url, upvotes, comments_count, ai_verification)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       [
-        authorName || "Verified Traveler",
+        author || authorName || "Verified Traveler",
         authorTier || "Active Explorer",
-        destination,
-        category,
-        title,
-        content,
-        location,
-        imageUrl,
+        destination || "General",
+        category || "Travel Tip",
+        title || "Traveler Report",
+        content || "",
+        location || "",
+        image || imageUrl || null,
+        upvotes !== undefined ? upvotes : 1,
+        commentsCount || 0,
         aiVerification ? JSON.stringify(aiVerification) : null,
       ]
     );
 
     res.status(201).json({ success: true, post: result.rows[0] });
   } catch (err) {
-    const db = readDb();
-    const newPost = {
-      id: req.body.id || `post-${Date.now()}`,
-      ...req.body,
-      created_at: req.body.createdAt || new Date().toISOString(),
-    };
-    if (!db.community_posts) db.community_posts = [];
-    db.community_posts = db.community_posts.filter((p) => p.id !== newPost.id);
-    db.community_posts.unshift(newPost);
-    writeDb(db);
-    res.status(201).json({ success: true, post: newPost });
+    const fallback = handleCreatePost(req.body);
+    res.status(fallback.status).json(fallback.data);
   }
-});
+};
+app.post("/api/community/posts", createPostHandler);
+app.post("/api/posts", createPostHandler);
 
-app.listen(PORT, () => {
-  console.log(`Tourister Hybrid Server running on port ${PORT}`);
+// 9. Community: Like / Upvote Post (Shared across all users)
+const likePostHandler = (req, res) => {
+  const { id } = req.params;
+  const { username } = req.body || {};
+  const result = handleToggleLike(id, username);
+  return res.status(result.status).json(result.data);
+};
+app.post("/api/community/posts/:id/like", likePostHandler);
+app.put("/api/community/posts/:id/like", likePostHandler);
+app.post("/api/posts/:id/like", likePostHandler);
+
+// 10. Community: Add Comment (Shared across all users)
+const addCommentHandler = (req, res) => {
+  const { id } = req.params;
+  const result = handleAddComment(id, req.body);
+  return res.status(result.status).json(result.data);
+};
+app.post("/api/community/posts/:id/comment", addCommentHandler);
+app.post("/api/posts/:id/comment", addCommentHandler);
+
+// 11. Community: Delete Post
+const deletePostHandler = (req, res) => {
+  const { id } = req.params;
+  const username = req.body?.username || req.query?.username;
+  const result = handleDeletePost(id, username);
+  return res.status(result.status).json(result.data);
+};
+app.delete("/api/community/posts/:id", deletePostHandler);
+app.delete("/api/posts/:id", deletePostHandler);
+
+// Serve frontend build if dist folder exists (single-port unified deployment)
+const distPath = path.join(__dirname, "dist");
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get(/^(?!\/api).+/, (req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Tourister Hybrid Server running on http://0.0.0.0:${PORT}`);
 });
 
