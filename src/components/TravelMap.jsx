@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -34,7 +34,19 @@ function TravelMap({
   const mapInstanceRef = useRef(null);
   const tileLayerRef = useRef(null);
   const layersGroupRef = useRef(null);
+  const spotsLayerGroupRef = useRef(null);
+
+  // Persistent layer references to prevent DOM recreation & flickering
+  const originMarkerRef = useRef(null);
+  const destMarkerRef = useRef(null);
+  const glowPolylineRef = useRef(null);
+  const corePolylineRef = useRef(null);
+
+  // User zoom/pan interaction lock
+  const userInteractedRef = useRef(false);
+  const hasFittedRoadRef = useRef(false);
   const lastFittedRouteKeyRef = useRef("");
+  const lastSpotsSignatureRef = useRef("");
 
   const sLat = Number(sourceCoordinates?.lat) || 17.385;
   const sLng = Number(sourceCoordinates?.lng) || 78.4867;
@@ -65,9 +77,16 @@ function TravelMap({
 
     mapInstanceRef.current = map;
 
-    // Create LayerGroup for markers and polylines
-    const layersGroup = L.layerGroup().addTo(map);
-    layersGroupRef.current = layersGroup;
+    // Detect user manual pan/zoom to prevent automatic recentering from overriding user focus
+    const handleUserInteraction = () => {
+      userInteractedRef.current = true;
+    };
+    map.on("zoomstart", handleUserInteraction);
+    map.on("dragstart", handleUserInteraction);
+
+    // Create LayerGroups for markers, spots and polylines
+    layersGroupRef.current = L.layerGroup().addTo(map);
+    spotsLayerGroupRef.current = L.layerGroup().addTo(map);
 
     // Invalidate size on resize
     const resizeObserver = new ResizeObserver(() => {
@@ -114,18 +133,38 @@ function TravelMap({
     }
   }, [mapType]);
 
-  // Update Route Polyline, Origin/Dest Markers, and Attraction Pins
+  // Update Route Polyline, Origin/Dest Markers, and Attraction Pins smoothly
   useEffect(() => {
     const map = mapInstanceRef.current;
     const layersGroup = layersGroupRef.current;
-    if (!map || !layersGroup) return;
+    const spotsGroup = spotsLayerGroupRef.current;
+    if (!map || !layersGroup || !spotsGroup) return;
 
-    layersGroup.clearLayers();
+    const currentRouteKey = `${sLat.toFixed(4)}_${sLng.toFixed(4)}_${dLat.toFixed(4)}_${dLng.toFixed(4)}_${sourceName}_${destinationName}`;
+    const isNewRoute = currentRouteKey !== lastFittedRouteKeyRef.current;
 
-    const boundsPoints = [
-      [sLat, sLng],
-      [dLat, dLng],
-    ];
+    // Reset interaction guard when the user genuinely changes destination or source
+    if (isNewRoute) {
+      lastFittedRouteKeyRef.current = currentRouteKey;
+      userInteractedRef.current = false;
+      hasFittedRoadRef.current = false;
+
+      try {
+        const initialBounds = L.latLngBounds([
+          [sLat, sLng],
+          [dLat, dLng],
+        ]);
+        if (initialBounds.isValid()) {
+          map.fitBounds(initialBounds, {
+            padding: [45, 45],
+            maxZoom: 14,
+            animate: false,
+          });
+        }
+      } catch (e) {
+        console.warn("Initial bounds fit notice:", e);
+      }
+    }
 
     // 1. Origin Marker
     const originIcon = L.divIcon({
@@ -145,15 +184,23 @@ function TravelMap({
       iconAnchor: [16, 16],
     });
 
-    const originMarker = L.marker([sLat, sLng], { icon: originIcon })
-      .bindPopup(
-        `<div class="map-popup-card">
-          <div class="popup-tag origin">ORIGIN</div>
-          <h4>${sourceName}</h4>
-          <p class="popup-coords">${sLat.toFixed(4)}° N, ${sLng.toFixed(4)}° E</p>
-        </div>`
-      )
-      .addTo(layersGroup);
+    const originPopup = `
+      <div class="map-popup-card">
+        <div class="popup-tag origin">ORIGIN</div>
+        <h4>${sourceName}</h4>
+        <p class="popup-coords">${sLat.toFixed(4)}° N, ${sLng.toFixed(4)}° E</p>
+      </div>
+    `;
+
+    if (!originMarkerRef.current) {
+      originMarkerRef.current = L.marker([sLat, sLng], { icon: originIcon })
+        .bindPopup(originPopup)
+        .addTo(layersGroup);
+    } else {
+      originMarkerRef.current.setLatLng([sLat, sLng]);
+      originMarkerRef.current.setIcon(originIcon);
+      originMarkerRef.current.setPopupContent(originPopup);
+    }
 
     // 2. Destination Marker
     const destIcon = L.divIcon({
@@ -173,121 +220,116 @@ function TravelMap({
       iconAnchor: [16, 16],
     });
 
-    const destMarker = L.marker([dLat, dLng], { icon: destIcon })
-      .bindPopup(
-        `<div class="map-popup-card">
-          <div class="popup-tag dest">DESTINATION</div>
-          <h4>${destinationName}</h4>
-          <p class="popup-coords">${dLat.toFixed(4)}° N, ${dLng.toFixed(4)}° E</p>
-        </div>`
-      )
-      .addTo(layersGroup);
+    const destPopup = `
+      <div class="map-popup-card">
+        <div class="popup-tag dest">DESTINATION</div>
+        <h4>${destinationName}</h4>
+        <p class="popup-coords">${dLat.toFixed(4)}° N, ${dLng.toFixed(4)}° E</p>
+      </div>
+    `;
 
-    // 3. Intermediate Tourist Attraction Markers
-    if (touristPlaces && touristPlaces.length > 0) {
-      touristPlaces.slice(0, 8).forEach((place, idx) => {
-        const pLat = Number(place.lat || place.latitude);
-        const pLng = Number(place.lng || place.longitude);
+    if (!destMarkerRef.current) {
+      destMarkerRef.current = L.marker([dLat, dLng], { icon: destIcon })
+        .bindPopup(destPopup)
+        .addTo(layersGroup);
+    } else {
+      destMarkerRef.current.setLatLng([dLat, dLng]);
+      destMarkerRef.current.setIcon(destIcon);
+      destMarkerRef.current.setPopupContent(destPopup);
+    }
 
-        if (!isNaN(pLat) && !isNaN(pLng) && pLat !== 0 && pLng !== 0) {
-          boundsPoints.push([pLat, pLng]);
+    // 3. Intermediate Tourist Attraction Markers (Only redraw if list of places actually changed)
+    const spotsSignature = (touristPlaces || [])
+      .slice(0, 8)
+      .map((p) => `${p.id || p.name}_${p.lat || p.latitude}_${p.lng || p.longitude}`)
+      .join(";");
 
-          const spotIcon = L.divIcon({
-            className: "tourister-map-marker-wrapper",
-            html: `
-              <div class="custom-route-marker spot-marker">
-                <div class="marker-core spot-core">
-                  <span>${idx + 1}</span>
+    if (spotsSignature !== lastSpotsSignatureRef.current) {
+      lastSpotsSignatureRef.current = spotsSignature;
+      spotsGroup.clearLayers();
+
+      if (touristPlaces && touristPlaces.length > 0) {
+        touristPlaces.slice(0, 8).forEach((place, idx) => {
+          const pLat = Number(place.lat || place.latitude);
+          const pLng = Number(place.lng || place.longitude);
+
+          if (!isNaN(pLat) && !isNaN(pLng) && pLat !== 0 && pLng !== 0) {
+            const spotIcon = L.divIcon({
+              className: "tourister-map-marker-wrapper",
+              html: `
+                <div class="custom-route-marker spot-marker">
+                  <div class="marker-core spot-core">
+                    <span>${idx + 1}</span>
+                  </div>
+                  <div class="marker-badge spot-badge">${(place.name || "").split(" ")[0]}</div>
                 </div>
-                <div class="marker-badge spot-badge">${place.name.split(" ")[0]}</div>
-              </div>
-            `,
-            iconSize: [26, 26],
-            iconAnchor: [13, 13],
-          });
+              `,
+              iconSize: [26, 26],
+              iconAnchor: [13, 13],
+            });
 
-          L.marker([pLat, pLng], { icon: spotIcon })
-            .bindPopup(
-              `<div class="map-popup-card">
-                <div class="popup-tag spot">STOP #${idx + 1}</div>
-                <h4>${place.name}</h4>
-                <p class="popup-desc">${place.category || "Attraction"} · ★ ${place.rating || "4.8"}</p>
-                <p class="popup-coords">${pLat.toFixed(4)}° N, ${pLng.toFixed(4)}° E</p>
-              </div>`
-            )
-            .addTo(layersGroup);
-        }
-      });
+            L.marker([pLat, pLng], { icon: spotIcon })
+              .bindPopup(
+                `<div class="map-popup-card">
+                  <div class="popup-tag spot">STOP #${idx + 1}</div>
+                  <h4>${place.name}</h4>
+                  <p class="popup-desc">${place.category || "Attraction"} · ★ ${place.rating || "4.8"}</p>
+                  <p class="popup-coords">${pLat.toFixed(4)}° N, ${pLng.toFixed(4)}° E</p>
+                </div>`
+              )
+              .addTo(spotsGroup);
+          }
+        });
+      }
     }
 
-    // 4. Route Polyline
-    let polylineCoords = [];
-    if (routeCoordinates && routeCoordinates.length > 1) {
-      polylineCoords = routeCoordinates;
+    // 4. Route Polylines (Real Road Highway Way vs Flight Path)
+    const hasRealRoadCoordinates = Array.isArray(routeCoordinates) && routeCoordinates.length > 2;
+    const polylineCoords = hasRealRoadCoordinates
+      ? routeCoordinates
+      : [
+          [sLat, sLng],
+          [dLat, dLng],
+        ];
+
+    const glowStyle = isFlightRoute
+      ? { color: "#38bdf8", weight: 6, opacity: 0.35, lineCap: "round" }
+      : { color: "#818cf8", weight: 7, opacity: 0.45, lineCap: "round", lineJoin: "round" };
+
+    const coreStyle = isFlightRoute
+      ? { color: "#0284c7", weight: 3, opacity: 0.95, dashArray: "8, 10", lineCap: "round" }
+      : { color: "#4f46e5", weight: 4.5, opacity: 0.95, dashArray: "", lineCap: "round", lineJoin: "round" };
+
+    if (!glowPolylineRef.current) {
+      glowPolylineRef.current = L.polyline(polylineCoords, glowStyle).addTo(layersGroup);
     } else {
-      polylineCoords = [
-        [sLat, sLng],
-        [dLat, dLng],
-      ];
+      glowPolylineRef.current.setLatLngs(polylineCoords);
+      glowPolylineRef.current.setStyle(glowStyle);
     }
 
-    // Add polyline coordinates to bounds calculation
-    polylineCoords.forEach((pt) => {
-      boundsPoints.push(pt);
-    });
-
-    if (isFlightRoute) {
-      // Glowing background line
-      L.polyline(polylineCoords, {
-        color: "#38bdf8",
-        weight: 6,
-        opacity: 0.35,
-        lineCap: "round",
-      }).addTo(layersGroup);
-
-      // Dashed flight path
-      L.polyline(polylineCoords, {
-        color: "#0284c7",
-        weight: 3,
-        opacity: 0.95,
-        dashArray: "8, 10",
-        lineCap: "round",
-      }).addTo(layersGroup);
+    if (!corePolylineRef.current) {
+      corePolylineRef.current = L.polyline(polylineCoords, coreStyle).addTo(layersGroup);
     } else {
-      // High-contrast outer glow
-      L.polyline(polylineCoords, {
-        color: "#818cf8",
-        weight: 7,
-        opacity: 0.45,
-        lineCap: "round",
-        lineJoin: "round",
-      }).addTo(layersGroup);
-
-      // Core vibrant route line
-      L.polyline(polylineCoords, {
-        color: "#4f46e5",
-        weight: 4.5,
-        opacity: 0.95,
-        lineCap: "round",
-        lineJoin: "round",
-      }).addTo(layersGroup);
+      corePolylineRef.current.setLatLngs(polylineCoords);
+      corePolylineRef.current.setStyle(coreStyle);
     }
 
-    // 5. Fit map viewport to encompass the full route ONLY when route initially loads or changes
-    const routeKey = `${sLat.toFixed(3)}_${sLng.toFixed(3)}_${dLat.toFixed(3)}_${dLng.toFixed(3)}_${sourceName}_${destinationName}`;
-    if (routeKey !== lastFittedRouteKeyRef.current) {
-      lastFittedRouteKeyRef.current = routeKey;
+    // 5. Fit full road route bounds smoothly ONLY once when the road coordinates first load,
+    // and ONLY if the user has not already manually zoomed or panned into the map.
+    if (hasRealRoadCoordinates && !hasFittedRoadRef.current && !userInteractedRef.current) {
+      hasFittedRoadRef.current = true;
       try {
-        const bounds = L.latLngBounds(boundsPoints);
-        if (bounds.isValid()) {
-          map.fitBounds(bounds, {
+        const roadBounds = L.latLngBounds(polylineCoords);
+        if (roadBounds.isValid()) {
+          map.fitBounds(roadBounds, {
             padding: [45, 45],
             maxZoom: 14,
-            animate: false,
+            animate: true,
+            duration: 0.8,
           });
         }
       } catch (e) {
-        console.warn("Fit bounds notice:", e);
+        console.warn("Road bounds fit notice:", e);
       }
     }
   }, [
@@ -309,12 +351,16 @@ function TravelMap({
     const map = mapInstanceRef.current;
     if (!map) return;
 
+    if (target === "route") {
+      handleFitRoute();
+      return;
+    }
+
+    userInteractedRef.current = true;
     if (target === "source") {
       map.flyTo([sLat, sLng], 14, { duration: 1.2 });
     } else if (target === "dest") {
       map.flyTo([dLat, dLng], 14, { duration: 1.2 });
-    } else if (target === "route") {
-      handleFitRoute();
     } else if (place) {
       const pLat = Number(place.lat || place.latitude);
       const pLng = Number(place.lng || place.longitude);
@@ -329,11 +375,14 @@ function TravelMap({
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    const boundsPoints = [
-      [sLat, sLng],
-      [dLat, dLng],
-      ...(routeCoordinates || []),
-    ];
+    userInteractedRef.current = false;
+    const hasRoad = Array.isArray(routeCoordinates) && routeCoordinates.length > 1;
+    const boundsPoints = hasRoad
+      ? routeCoordinates
+      : [
+          [sLat, sLng],
+          [dLat, dLng],
+        ];
 
     try {
       const bounds = L.latLngBounds(boundsPoints);
@@ -445,7 +494,7 @@ function TravelMap({
               }`}
               onClick={() => handleSelectPin(place.id || idx, place)}
             >
-              <FaMapMarkerAlt className="pin-icon orange" /> #{idx + 1} {place.name.split(" ")[0]}
+              <FaMapMarkerAlt className="pin-icon orange" /> #{idx + 1} {(place.name || "").split(" ")[0]}
             </button>
           ))}
       </div>
@@ -484,6 +533,7 @@ function TravelMap({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              userInteractedRef.current = true;
               mapInstanceRef.current?.zoomIn();
             }}
             title="Zoom In"
@@ -496,6 +546,7 @@ function TravelMap({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              userInteractedRef.current = true;
               mapInstanceRef.current?.zoomOut();
             }}
             title="Zoom Out"
@@ -508,4 +559,4 @@ function TravelMap({
   );
 }
 
-export default TravelMap;
+export default React.memo(TravelMap);

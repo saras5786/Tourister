@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaRoute,
@@ -39,6 +39,7 @@ import TravelMap from "./TravelMap";
 import "./CreatePlan.css";
 
 const THEMATIC_FALLBACK_IMG = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=700&q=80";
+const EMPTY_ROUTE_COORDS = [];
 
 function CreatePlan({ onBack, userPoints = 300, onAddPoints, onSavePlan, username = "Tourister" }) {
   // 1. FROM (SOURCE) LOCATION STATE
@@ -485,7 +486,7 @@ Give 3 concise bullet points:
               sourceCoordinates={sourceCoordinates}
               destinationCoordinates={destinationCoordinates}
               touristPlaces={chosenAttractions.length > 0 ? chosenAttractions : touristPlaces}
-              routeCoordinates={routeSummary?.routeCoordinates || []}
+              routeCoordinates={routeSummary?.routeCoordinates || EMPTY_ROUTE_COORDS}
               routeSummary={routeSummary}
               isFlightRoute={!routeSummary?.roadRouteAvailable && !routeSummary?.isLocal}
             />
@@ -1119,4 +1120,4 @@ Give 3 concise bullet points:
   );
 }
 
-export default CreatePlan;
+export default React.memo(CreatePlan);

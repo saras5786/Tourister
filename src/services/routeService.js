@@ -167,33 +167,41 @@ export async function fetchRealRoadRoute(lat1, lon1, lat2, lon2) {
     }
   }
 
-  // 2. Open Source Routing Machine (OSRM) Public API (free, worldwide, no API key)
-  try {
-    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=full&geometries=geojson`;
-    const res = await fetch(osrmUrl, { signal: AbortSignal.timeout(6000) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.code === "Ok" && data.routes && data.routes.length > 0) {
-        const route = data.routes[0];
-        const distKm = Math.round(route.distance / 1000);
-        // Convert GeoJSON [lon, lat] to Leaflet [lat, lon]
-        const coords = (route.geometry?.coordinates || []).map(([ln, lt]) => [
-          lt,
-          ln,
-        ]);
-        return {
-          isLocal: false,
-          roadDistanceKm: distKm,
-          roadDistanceMiles: kmToMiles(distKm),
-          drivingDurationText: formatDuration(route.duration),
-          drivingDurationSeconds: route.duration,
-          routeCoordinates: coords,
-          source: "osrm",
-        };
+  // 2. High-speed OpenStreetMap / OSRM Routing Servers (Free, Worldwide, No API Key)
+  const routingEndpoints = [
+    `https://routing.openstreetmap.de/routed-car/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=full&geometries=geojson`,
+    `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=full&geometries=geojson`,
+  ];
+
+  for (const endpointUrl of routingEndpoints) {
+    try {
+      const res = await fetch(endpointUrl, { signal: AbortSignal.timeout(7000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
+          const route = data.routes[0];
+          const distKm = Math.round(route.distance / 1000);
+          // Convert GeoJSON [lon, lat] to Leaflet [lat, lon]
+          const coords = (route.geometry?.coordinates || []).map(([ln, lt]) => [
+            lt,
+            ln,
+          ]);
+          if (coords.length > 1) {
+            return {
+              isLocal: false,
+              roadDistanceKm: distKm,
+              roadDistanceMiles: kmToMiles(distKm),
+              drivingDurationText: formatDuration(route.duration),
+              drivingDurationSeconds: route.duration,
+              routeCoordinates: coords,
+              source: "osrm_real_highway",
+            };
+          }
+        }
       }
+    } catch (e) {
+      console.warn("Routing mirror attempt notice:", e.message);
     }
-  } catch (e) {
-    console.warn("OSRM routing unreachable:", e);
   }
 
   // 3. Fallback when road API is unreachable or offline for land connections (< 3500 km)

@@ -89,6 +89,15 @@
       "user_points": 300,
       "wallet_balance": 2500,
       "created_at": "2026-09-09T06:02:15.644Z"
+    },
+    {
+      "id": "usr-1788935017986-41xce",
+      "username": "user123",
+      "email": "user123@test.com",
+      "password_hash": "38a8eb3ec19e1cda2a2fb128622cb2ec:fd098342371cec59839590b5a8aec65fc96d0dc87762e275b54831aafdf2bafd1bf4bb25767148c4db8ebf924528311eeb5f44594cbdcbf438704fc23ba20f88",
+      "user_points": 300,
+      "wallet_balance": 2500,
+      "created_at": "2026-09-09T06:23:37.988Z"
     }
   ],
   "saved_plans": [],

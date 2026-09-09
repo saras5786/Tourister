@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import CreatePlan from "./components/CreatePlan";
@@ -70,16 +70,102 @@ const backgroundDots = [
   { id: 10, left: "62%", top: "84%", size: 20, className: "purple-dot" },
 ];
 
+/* =================================
+   ISOLATED INTERACTIVE BACKGROUND (Zero Re-renders of App or Map on Mousemove)
+================================= */
+const InteractiveBackground = React.memo(function InteractiveBackground() {
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    let animFrame;
+    const handleMouseMove = (event) => {
+      cancelAnimationFrame(animFrame);
+      animFrame = requestAnimationFrame(() => {
+        setMouse({
+          x: event.clientX,
+          y: event.clientY,
+        });
+        document.documentElement.style.setProperty("--mouse-x", `${event.clientX}px`);
+        document.documentElement.style.setProperty("--mouse-y", `${event.clientY}px`);
+      });
+    };
+
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    return () => {
+      cancelAnimationFrame(animFrame);
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, []);
+
+  const getDotMovement = (left, top) => {
+    const dotX = (parseFloat(left) / 100) * window.innerWidth;
+    const dotY = (parseFloat(top) / 100) * window.innerHeight;
+
+    const distanceX = dotX - mouse.x;
+    const distanceY = dotY - mouse.y;
+    const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+    const interactionDistance = 190;
+
+    if (distance < interactionDistance && distance > 0) {
+      const strength = (interactionDistance - distance) / interactionDistance;
+      return {
+        x: (distanceX / distance) * strength * 35,
+        y: (distanceY / distance) * strength * 35,
+      };
+    }
+
+    return { x: 0, y: 0 };
+  };
+
+  return (
+    <>
+      {/* MOUSE GLOW */}
+      <div className="mouse-glow" />
+
+      {/* BACKGROUND ORBS */}
+      <div className="background-orb orb-pink" />
+      <div className="background-orb orb-blue" />
+      <div className="background-orb orb-purple" />
+      <div className="background-orb orb-cyan" />
+      <div className="background-orb orb-orange" />
+      <div className="background-orb orb-indigo" />
+
+      {/* 10 SMOOTH FLOATING INTERACTIVE BACKGROUND DOTS */}
+      <div className="global-dots-layer">
+        {backgroundDots.map((dot) => {
+          const movement = getDotMovement(dot.left, dot.top);
+          return (
+            <motion.div
+              key={dot.id}
+              className={`floating-dot ${dot.className}`}
+              style={{
+                left: dot.left,
+                top: dot.top,
+                width: dot.size,
+                height: dot.size,
+              }}
+              animate={{
+                x: movement.x,
+                y: movement.y,
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 180,
+                damping: 12,
+              }}
+            />
+          );
+        })}
+      </div>
+    </>
+  );
+});
+
 function App() {
   /* =================================
      PAGE ROUTING STATE
   ================================= */
   const [page, setPage] = useState("home"); // 'home' | 'auth' | 'dashboard' | 'ai' | 'create-plan' | 'community' | 'wallet' | 'profile' | 'sos' | 'phrasebook' | 'fasttrack'
-
-  /* =================================
-     MOUSE POSITION
-  ================================= */
-  const [mouse, setMouse] = useState({ x: 0, y: 0 });
 
   /* =================================
      REAL AUTHENTICATION & USER STATE
@@ -244,46 +330,6 @@ Whenever the user asks about a trip or destination, always structure your answer
   };
 
   /* =================================
-     MOUSE TRACKING
-  ================================= */
-  useEffect(() => {
-    const handleMouseMove = (event) => {
-      setMouse({
-        x: event.clientX,
-        y: event.clientY,
-      });
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-    };
-  }, []);
-
-  /* =================================
-     SMOOTH CLASSIC DOT MOVEMENT
-  ================================= */
-  const getDotMovement = (left, top) => {
-    const dotX = (parseFloat(left) / 100) * window.innerWidth;
-    const dotY = (parseFloat(top) / 100) * window.innerHeight;
-
-    const distanceX = dotX - mouse.x;
-    const distanceY = dotY - mouse.y;
-    const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-    const interactionDistance = 190;
-
-    if (distance < interactionDistance && distance > 0) {
-      const strength = (interactionDistance - distance) / interactionDistance;
-      return {
-        x: (distanceX / distance) * strength * 35,
-        y: (distanceY / distance) * strength * 35,
-      };
-    }
-
-    return { x: 0, y: 0 };
-  };
-
-  /* =================================
      REAL AUTHENTICATION HANDLERS
   ================================= */
   const handleGetStarted = () => {
@@ -387,51 +433,8 @@ Whenever the user asks about a trip or destination, always structure your answer
   };
 
   return (
-    <div
-      className="tourister-page"
-      style={{
-        "--mouse-x": `${mouse.x}px`,
-        "--mouse-y": `${mouse.y}px`,
-      }}
-    >
-      {/* MOUSE GLOW */}
-      <div className="mouse-glow" />
-
-      {/* BACKGROUND ORBS */}
-      <div className="background-orb orb-pink" />
-      <div className="background-orb orb-blue" />
-      <div className="background-orb orb-purple" />
-      <div className="background-orb orb-cyan" />
-      <div className="background-orb orb-orange" />
-      <div className="background-orb orb-indigo" />
-
-      {/* 10 SMOOTH FLOATING INTERACTIVE BACKGROUND DOTS (Rendered Across ALL Pages) */}
-      <div className="global-dots-layer">
-        {backgroundDots.map((dot) => {
-          const movement = getDotMovement(dot.left, dot.top);
-          return (
-            <motion.div
-              key={dot.id}
-              className={`floating-dot ${dot.className}`}
-              style={{
-                left: dot.left,
-                top: dot.top,
-                width: dot.size,
-                height: dot.size,
-              }}
-              animate={{
-                x: movement.x,
-                y: movement.y,
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 180,
-                damping: 12,
-              }}
-            />
-          );
-        })}
-      </div>
+    <div className="tourister-page">
+      <InteractiveBackground />
 
       {/* =================================
           1. HOME / LANDING PAGE
